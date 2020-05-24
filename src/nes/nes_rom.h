@@ -8,6 +8,7 @@ public:
 	bool load(gsl::span<const std::byte> romData);
 	gsl::span<uint8_t> getPRGROM();
 	gsl::span<uint8_t> getCHRROM();
+	uint16_t getMapper() const;
 
 private:
 	enum class MirroringType : uint8_t {

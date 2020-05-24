@@ -87,3 +87,8 @@ gsl::span<uint8_t> NESRom::getCHRROM()
 {
 	return chrRom;
 }
+
+uint16_t NESRom::getMapper() const
+{
+	return mapper;
+}

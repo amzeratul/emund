@@ -19,24 +19,34 @@ void AddressSpace8BitBy16Bit::write(uint16_t address, uint8_t value) const
 	segment[address & 0xFF] = value;
 }
 
-void AddressSpace8BitBy16Bit::map(gsl::span<uint8_t> memoryToMap, uint16_t baseAddress)
+void AddressSpace8BitBy16Bit::map(gsl::span<uint8_t> memoryToMap, uint16_t startAddress, uint16_t endAddress)
 {
-	Expects(memoryToMap.size() % 256 == 0);
-	Expects(baseAddress % 256 == 0);
-	const size_t len = memoryToMap.size();
+	constexpr size_t segmentSize = 256;
+	
+	Expects(startAddress % segmentSize == 0);
+	Expects(endAddress % segmentSize == 255);
 
-	for (size_t i = 0; i < (len / 256); ++i) {
-		memory[i + (baseAddress / 256)] = memoryToMap.data() + (i * 256);
+	const size_t dstLen = size_t(endAddress) - startAddress + 1;
+	const size_t srcLen = memoryToMap.size();
+	const size_t dstSegments = dstLen / segmentSize;
+	const size_t srcSegments = srcLen / segmentSize;
+
+	Expects(dstLen % srcLen == 0);
+
+	for (size_t i = 0; i < dstSegments; ++i) {
+		memory[i + (startAddress / segmentSize)] = memoryToMap.data() + ((i % srcSegments) * segmentSize);
 	}
 }
 
-void AddressSpace8BitBy16Bit::unmap(gsl::span<uint8_t> memoryToUnmap, uint16_t baseAddress)
+void AddressSpace8BitBy16Bit::unmap(uint16_t startAddress, uint16_t endAddress)
 {
-	Expects(memoryToUnmap.size() % 256 == 0);
-	Expects(baseAddress % 256 == 0);
-	const size_t len = memoryToUnmap.size();
+	constexpr size_t segmentSize = 256;
+	
+	Expects(startAddress % segmentSize == 0);
+	Expects(endAddress % segmentSize == 255);
+	const size_t len = size_t(endAddress) - startAddress + 1;
 
-	for (size_t i = 0; i < (len / 256); ++i) {
-		memory[i + (baseAddress / 256)] = nullptr;
+	for (size_t i = 0; i < (len / segmentSize); ++i) {
+		memory[i + (startAddress / segmentSize)] = nullptr;
 	}
 }

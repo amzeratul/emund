@@ -20,6 +20,8 @@ set (SOURCES
 	"src/game/emund_game.cpp"
 	"src/game/game_stage.cpp"
 	
+	"src/nes/nes_mapper.cpp"
+	"src/nes/nes_machine.cpp"
 	"src/nes/nes_rom.cpp"
 	)
 
@@ -32,6 +34,8 @@ set (HEADERS
 	"src/game/emund_game.h"
 	"src/game/game_stage.h"
 
+	"src/nes/nes_mapper.h"
+	"src/nes/nes_machine.h"
 	"src/nes/nes_rom.h"
 	)
 
