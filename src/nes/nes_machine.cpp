@@ -18,13 +18,22 @@ NESMachine::NESMachine()
 
 NESMachine::~NESMachine() = default;
 
-void NESMachine::loadROM(std::unique_ptr<NESRom> rom)
+void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 {
+	rom = std::move(romToLoad);
 	NESMapper mapper;
 	mapper.map(*rom, *addressSpace);
 }
 
 void NESMachine::tick(double t)
 {
-	cpu->tick();
+	if (!cpu->hasError()) {
+		cpu->tick();
+
+		if (cpu->hasError()) {
+			auto error = cpu->getError();
+			auto instruction = cpu->getErrorInstruction();
+			throw std::exception("CPU error");
+		}
+	}
 }
