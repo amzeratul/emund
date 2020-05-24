@@ -6,6 +6,7 @@ using namespace Halley;
 
 class NESRom;
 class CPU6502;
+class AddressSpace8BitBy16Bit;
 
 class GameStage : public EntityStage {
 public:
@@ -20,4 +21,5 @@ public:
 private:
 	std::unique_ptr<NESRom> rom;
 	std::unique_ptr<CPU6502> cpu;
+	std::unique_ptr<AddressSpace8BitBy16Bit> addressSpace;
 };

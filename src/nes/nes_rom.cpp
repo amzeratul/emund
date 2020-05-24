@@ -77,3 +77,13 @@ bool NESRom::load(gsl::span<const std::byte> romData)
 
 	return true;
 }
+
+gsl::span<uint8_t> NESRom::getPRGROM()
+{
+	return prgRom;
+}
+
+gsl::span<uint8_t> NESRom::getCHRROM()
+{
+	return chrRom;
+}

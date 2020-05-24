@@ -14,6 +14,7 @@ endif()
 set (SOURCES
 	"prec.cpp"
 	
+	"src/cpu/address_space.cpp"
 	"src/cpu/cpu_6502.cpp"
 	
 	"src/game/emund_game.cpp"
@@ -25,6 +26,7 @@ set (SOURCES
 set (HEADERS
 	"prec.h"
 	
+	"src/cpu/address_space.h"
 	"src/cpu/cpu_6502.h"
 	
 	"src/game/emund_game.h"
