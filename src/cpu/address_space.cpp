@@ -5,20 +5,6 @@ AddressSpace8BitBy16Bit::AddressSpace8BitBy16Bit()
 	memory.fill(nullptr);
 }
 
-uint8_t AddressSpace8BitBy16Bit::read(uint16_t address) const
-{
-	const auto& segment = memory[address >> 8];
-	// TODO: null check?
-	return segment[address & 0xFF];
-}
-
-void AddressSpace8BitBy16Bit::write(uint16_t address, uint8_t value) const
-{
-	const auto& segment = memory[address >> 8];
-	// TODO: null check?
-	segment[address & 0xFF] = value;
-}
-
 void AddressSpace8BitBy16Bit::map(gsl::span<uint8_t> memoryToMap, uint16_t startAddress, uint16_t endAddress)
 {
 	constexpr size_t segmentSize = 256;

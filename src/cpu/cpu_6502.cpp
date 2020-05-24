@@ -22,71 +22,6 @@ void CPU6502::setAddressSpace(AddressSpace8BitBy16Bit& addressSpace)
 
 void CPU6502::tick()
 {
-	const auto loadImmediate = [&] () -> uint8_t
-	{
-		return addressSpace->read(regPC++);
-	};
-
-	const auto loadImmediate16 = [&] () -> uint16_t
-	{
-		const auto lowAddr = loadImmediate();
-		const auto highAddr = loadImmediate();
-		return static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	};
-	
-	const auto loadAbsolute = [&] () -> uint8_t
-	{
-		const auto lowAddr = loadImmediate();
-		const auto highAddr = loadImmediate();
-		const auto addr =  static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-		return addressSpace->read(addr);
-	};
-	
-	const auto loadAbsolutePlus = [&] (uint8_t offset) -> uint8_t
-	{
-		const auto lowAddr = loadImmediate();
-		const auto highAddr = loadImmediate();
-		const auto addr =  (static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8)) + offset;
-		return addressSpace->read(addr);
-	};
-
-	const auto loadZeroPage = [&] () -> uint8_t
-	{
-		const auto lowAddr = loadImmediate();
-		return addressSpace->read(static_cast<uint16_t>(lowAddr));
-	};
-
-	const auto loadZeroPagePlus = [&] (uint8_t offset) -> uint8_t
-	{
-		const auto lowAddr = loadImmediate();
-		return addressSpace->read(static_cast<uint16_t>(lowAddr + offset));
-	};
-	
-	const auto storeAbsolute = [&] (uint8_t value)
-	{
-		const auto lowAddr = loadImmediate();
-		const auto highAddr = loadImmediate();
-		const auto addr =  static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-		addressSpace->write(addr, value);
-	};
-
-	const auto storeZeroPage = [&] (uint8_t value)
-	{
-		const auto lowAddr = loadImmediate();
-		addressSpace->write(static_cast<uint16_t>(lowAddr), value);
-	};
-
-	const auto storeZeroPagePlus = [&] (uint8_t value, uint8_t offset)
-	{
-		const auto lowAddr = loadImmediate();
-		addressSpace->write(static_cast<uint16_t>(lowAddr + offset), value);
-	};
-
-	const auto storeStack = [&] (uint8_t value)
-	{
-		addressSpace->write(0x100 + regS--, value);
-	};
-
 	const auto instruction = loadImmediate();
 	
 	switch (instruction) {
@@ -206,6 +141,38 @@ void CPU6502::tick()
 		regX = loadAbsolutePlus(regY);
 		setZN(regX);
 		break;
+	case 0xC1:
+		// CMP, (Indirect, X)
+		compare(loadIndirectX());
+		break;
+	case 0xC5:
+		// CMP, Zero Page
+		compare(loadZeroPage());
+		break;
+	case 0xC9:
+		// CMP, Immediate
+		compare(loadImmediate());
+		break;
+	case 0xCD:
+		// CMP, Absolute
+		compare(loadAbsolute());
+		break;
+	case 0xD1:
+		// CMP, (Indirect), Y
+		compare(loadIndirectY());
+		break;
+	case 0xD5:
+		// CMP, Zero Page + X
+		compare(loadZeroPagePlus(regX));
+		break;
+	case 0xD9:
+		// CMP, Absolute + Y
+		compare(loadAbsolutePlus(regY));
+		break;
+	case 0xDD:
+		// CMP, Absolute + X
+		compare(loadAbsolutePlus(regX));
+		break;
 	case 0xEA:
 		// NOP
 		break;
@@ -240,3 +207,86 @@ void CPU6502::setZN(uint8_t value)
 {
 	regP = (regP & ~(FLAG_ZERO | FLAG_NEGATIVE)) | (value == 0 ? FLAG_ZERO : 0) | (value & 0x80 ? FLAG_NEGATIVE : 0);
 }
+
+uint8_t CPU6502::loadImmediate()
+{
+	return addressSpace->read(regPC++);
+};
+
+uint16_t CPU6502::loadImmediate16()
+{
+	const auto lowAddr = loadImmediate();
+	const auto highAddr = loadImmediate();
+	return static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
+};
+
+uint8_t CPU6502::loadAbsolute()
+{
+	const auto lowAddr = loadImmediate();
+	const auto highAddr = loadImmediate();
+	const auto addr =  static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
+	return addressSpace->read(addr);
+};
+
+uint8_t CPU6502::loadAbsolutePlus(uint8_t offset)
+{
+	const auto lowAddr = loadImmediate();
+	const auto highAddr = loadImmediate();
+	const auto addr =  (static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8)) + offset;
+	return addressSpace->read(addr);
+};
+
+uint8_t CPU6502::loadZeroPage()
+{
+	const auto lowAddr = loadImmediate();
+	return addressSpace->read(static_cast<uint16_t>(lowAddr));
+};
+
+uint8_t CPU6502::loadZeroPagePlus(uint8_t offset)
+{
+	const auto lowAddr = loadImmediate();
+	return addressSpace->read(static_cast<uint16_t>(lowAddr) + offset);
+};
+
+uint8_t CPU6502::loadIndirectX()
+{
+	const auto tablePos = loadImmediate();
+	return addressSpace->read(static_cast<uint16_t>(tablePos + regX));
+};
+
+uint8_t CPU6502::loadIndirectY()
+{
+	const auto addr = loadImmediate16();
+	return addressSpace->read(addr + regY);
+};
+
+void CPU6502::storeAbsolute(uint8_t value)
+{
+	const auto lowAddr = loadImmediate();
+	const auto highAddr = loadImmediate();
+	const auto addr =  static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
+	addressSpace->write(addr, value);
+};
+
+void CPU6502::storeZeroPage(uint8_t value)
+{
+	const auto lowAddr = loadImmediate();
+	addressSpace->write(static_cast<uint16_t>(lowAddr), value);
+};
+
+void CPU6502::storeZeroPagePlus(uint8_t value, uint8_t offset)
+{
+	const auto lowAddr = loadImmediate();
+	addressSpace->write(static_cast<uint16_t>(lowAddr) + offset, value);
+};
+
+void CPU6502::storeStack(uint8_t value)
+{
+	addressSpace->write(0x100 + regS--, value);
+};
+
+void CPU6502::compare(uint8_t value)
+{
+	const auto temp = value - regA;
+	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_NEGATIVE)) | (regA >= value ? FLAG_CARRY : 0) | (regA == value ? FLAG_CARRY : 0) | ((temp & 0x80) != 0 ? FLAG_NEGATIVE : 0);
+};

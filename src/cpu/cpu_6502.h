@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "../utils/macros.h"
 
 class AddressSpace8BitBy16Bit;
 
@@ -35,4 +36,18 @@ private:
 	uint8_t errorInstruction;
 
 	void setZN(uint8_t value);
+
+	FORCEINLINE uint8_t loadImmediate();
+	FORCEINLINE uint16_t loadImmediate16();
+	FORCEINLINE uint8_t loadAbsolute();
+	FORCEINLINE uint8_t loadAbsolutePlus(uint8_t offset);
+	FORCEINLINE uint8_t loadZeroPage();
+	FORCEINLINE uint8_t loadZeroPagePlus(uint8_t offset);
+	FORCEINLINE uint8_t loadIndirectX();
+	FORCEINLINE uint8_t loadIndirectY();
+	FORCEINLINE void storeAbsolute(uint8_t value);
+	FORCEINLINE void storeZeroPage(uint8_t value);
+	FORCEINLINE void storeZeroPagePlus(uint8_t value, uint8_t offset);
+	FORCEINLINE void storeStack(uint8_t value);
+	FORCEINLINE void compare(uint8_t value);
 };

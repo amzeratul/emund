@@ -37,6 +37,8 @@ set (HEADERS
 	"src/nes/nes_mapper.h"
 	"src/nes/nes_machine.h"
 	"src/nes/nes_rom.h"
+
+	"src/utils/macros.h"
 	)
 
 set (GEN_DEFINITIONS
