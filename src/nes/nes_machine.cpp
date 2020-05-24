@@ -27,7 +27,7 @@ void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 
 void NESMachine::tick(double t)
 {
-	if (!cpu->hasError()) {
+	while (!cpu->hasError()) {
 		cpu->tick();
 
 		if (cpu->hasError()) {

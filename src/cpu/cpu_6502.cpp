@@ -2,6 +2,15 @@
 
 #include "address_space.h"
 
+constexpr uint8_t FLAG_CARRY = 0x01;
+constexpr uint8_t FLAG_ZERO = 0x02;
+constexpr uint8_t FLAG_INTERRUPT_DISABLE = 0x04;
+constexpr uint8_t FLAG_DECIMAL = 0x8;
+constexpr uint8_t FLAG_B = 0x30;
+constexpr uint8_t FLAG_OVERFLOW = 0x40;
+constexpr uint8_t FLAG_NEGATIVE = 0x80;
+constexpr uint8_t FLAG_ALL = 0xFF;
+
 CPU6502::CPU6502()
 {
 }
@@ -73,9 +82,32 @@ void CPU6502::tick()
 		addressSpace->write(static_cast<uint16_t>(lowAddr + offset), value);
 	};
 
+	const auto storeStack = [&] (uint8_t value)
+	{
+		addressSpace->write(0x100 + regS--, value);
+	};
+
 	const auto instruction = loadImmediate();
 	
 	switch (instruction) {
+	case 0x18:
+		// CLC
+		regP &= ~FLAG_CARRY;
+		break;
+	case 0x20:
+		// JSR
+		{
+			const auto addr = loadImmediate16();
+			--regPC;
+			storeStack(regPC >> 8);
+			storeStack(regPC & 0xFF);
+			regPC = addr;
+			break;
+		}
+	case 0x38:
+		// SEC
+		regP |= FLAG_CARRY;
+		break;
 	case 0x4C:
 		// JMP, immediate
 		regPC = loadImmediate16();
@@ -105,6 +137,12 @@ void CPU6502::tick()
 	case 0x8E:
 		// STX, absolute
 		storeAbsolute(regX);
+		break;
+	case 0x90:
+		// BCC
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) == 0) {
+			regPC += offset;
+		}
 		break;
 	case 0x94:
 		// STY, zero page + X
@@ -148,6 +186,10 @@ void CPU6502::tick()
 		// LDY, zero page + X
 		regY = loadZeroPagePlus(regX);
 		setZN(regY);
+		break;
+	case 0xB0:
+		// BCS
+		regPC += static_cast<int8_t>(loadImmediate());
 		break;
 	case 0xB6:
 		// LDX, zero page + Y
@@ -193,15 +235,6 @@ uint8_t CPU6502::getErrorInstruction() const
 {
 	return errorInstruction;
 }
-
-constexpr uint8_t FLAG_CARRY = 0x01;
-constexpr uint8_t FLAG_ZERO = 0x02;
-constexpr uint8_t FLAG_INTERRUPT_DISABLE = 0x04;
-constexpr uint8_t FLAG_DECIMAL = 0x8;
-constexpr uint8_t FLAG_B = 0x30;
-constexpr uint8_t FLAG_OVERFLOW = 0x40;
-constexpr uint8_t FLAG_NEGATIVE = 0x80;
-constexpr uint8_t FLAG_ALL = 0xFF;
 
 void CPU6502::setZN(uint8_t value)
 {
