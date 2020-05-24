@@ -1,4 +1,4 @@
-#include "game.h"
+#include "emund_game.h"
 #include "game_stage.h"
 
 void initOpenGLPlugin(IPluginRegistry &registry);
@@ -30,11 +30,11 @@ int HalleyGame::initPlugins(IPluginRegistry& registry)
 }
 
 void HalleyGame::initResourceLocator(const Path& gamePath, const Path& assetsPath, const Path& unpackedAssetsPath, ResourceLocator& locator) {
-	constexpr bool localAssets = false;
+	constexpr bool localAssets = true;
 	if (localAssets) {
 		locator.addFileSystem(unpackedAssetsPath);
 	} else {
-		const String packs[] = { "images.dat", "shaders.dat", "config.dat", "music.dat", "sfx.dat", "movie.dat" };
+		const String packs[] = { "images.dat", "shaders.dat", "config.dat", "music.dat", "sfx.dat" };
 		for (auto& pack: packs) {
 			locator.addPack(Path(assetsPath) / pack);
 		}
@@ -43,12 +43,12 @@ void HalleyGame::initResourceLocator(const Path& gamePath, const Path& assetsPat
 
 String HalleyGame::getName() const
 {
-	return "Halley Blank Project";
+	return "EMUnd Halley";
 }
 
 String HalleyGame::getDataPath() const
 {
-	return "Halley/HalleyBlankProject";
+	return "Halley/Emund";
 }
 
 bool HalleyGame::isDevMode() const
@@ -56,15 +56,13 @@ bool HalleyGame::isDevMode() const
 	return true;
 }
 
-std::unique_ptr<Stage> HalleyGame::startGame(const HalleyAPI* api)
+std::unique_ptr<Stage> HalleyGame::startGame()
 {
-	this->api = api;
-
 	bool vsync = true;
 
-	api->video->setWindow(WindowDefinition(WindowType::Window, Vector2i(1280, 720), "GGJ20"));
-	api->video->setVsync(vsync);
-	api->audio->startPlayback();
+	getAPI().video->setWindow(WindowDefinition(WindowType::Window, Vector2i(1280, 720), getName()));
+	getAPI().video->setVsync(vsync);
+	getAPI().audio->startPlayback();
 	return std::make_unique<GameStage>();
 }
 
