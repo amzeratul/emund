@@ -52,6 +52,26 @@ void CPU6502::tick()
 		const auto lowAddr = loadImmediate();
 		return addressSpace->read(static_cast<uint16_t>(lowAddr + offset));
 	};
+	
+	const auto storeAbsolute = [&] (uint8_t value)
+	{
+		const auto lowAddr = loadImmediate();
+		const auto highAddr = loadImmediate();
+		const auto addr =  static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
+		addressSpace->write(addr, value);
+	};
+
+	const auto storeZeroPage = [&] (uint8_t value)
+	{
+		const auto lowAddr = loadImmediate();
+		addressSpace->write(static_cast<uint16_t>(lowAddr), value);
+	};
+
+	const auto storeZeroPagePlus = [&] (uint8_t value, uint8_t offset)
+	{
+		const auto lowAddr = loadImmediate();
+		addressSpace->write(static_cast<uint16_t>(lowAddr + offset), value);
+	};
 
 	const auto instruction = loadImmediate();
 	
@@ -70,6 +90,30 @@ void CPU6502::tick()
 			regPC = addr1;
 			break;
 		}
+	case 0x84:
+		// STY, zero page
+		storeZeroPage(regY);
+		break;
+	case 0x86:
+		// STX, zero page
+		storeZeroPage(regX);
+		break;
+	case 0x8C:
+		// STY, absolute
+		storeAbsolute(regY);
+		break;
+	case 0x8E:
+		// STX, absolute
+		storeAbsolute(regX);
+		break;
+	case 0x94:
+		// STY, zero page + X
+		storeZeroPagePlus(regY, regX);
+		break;
+	case 0x96:
+		// STX, zero page + Y
+		storeZeroPagePlus(regX, regY);
+		break;
 	case 0xA0:
 		// LDY, immediate
 		regY = loadImmediate();
