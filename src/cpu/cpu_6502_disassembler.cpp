@@ -166,26 +166,38 @@ CPU6502Disassembler::CPU6502Disassembler()
 	addEntry(0xDA, "NOP", ""        , "Implied"    , 1, "1", true);
 	addEntry(0xFA, "NOP", ""        , "Implied"    , 1, "1", true);
 
-	addEntry(0x04, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0x44, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0x64, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0x14, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0x34, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0x44, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0x54, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0x64, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0x74, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0x80, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0xD4, "NOP", ""        , "Implied"    , 1, "2", true);
-	addEntry(0xF4, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x04, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x44, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x64, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x14, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x34, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x44, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x54, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x64, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x74, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x80, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0xD4, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0xF4, "NOP", ""        , "Implied"    , 2, "1", true);
 
-	addEntry(0x0C, "NOP", ""        , "Implied"    , 1, "3", true);
-	addEntry(0x1C, "NOP", ""        , "Implied"    , 1, "3", true);
-	addEntry(0x3C, "NOP", ""        , "Implied"    , 1, "3", true);
-	addEntry(0x5C, "NOP", ""        , "Implied"    , 1, "3", true);
-	addEntry(0x7C, "NOP", ""        , "Implied"    , 1, "3", true);
-	addEntry(0xDC, "NOP", ""        , "Implied"    , 1, "3", true);
-	addEntry(0xFC, "NOP", ""        , "Implied"    , 1, "3", true);
+	addEntry(0x0C, "NOP", ""        , "Implied"    , 3, "1", true);
+	addEntry(0x1C, "NOP", ""        , "Implied"    , 3, "1", true);
+	addEntry(0x3C, "NOP", ""        , "Implied"    , 3, "1", true);
+	addEntry(0x5C, "NOP", ""        , "Implied"    , 3, "1", true);
+	addEntry(0x7C, "NOP", ""        , "Implied"    , 3, "1", true);
+	addEntry(0xDC, "NOP", ""        , "Implied"    , 3, "1", true);
+	addEntry(0xFC, "NOP", ""        , "Implied"    , 3, "1", true);
+
+	addEntry(0xA7, "LAX", "$44"     , "Zero Page"  , 2, "3", true);
+	addEntry(0xB7, "LAX", "$44,X"   , "Zero Page,X", 2, "4", true);
+	addEntry(0xAF, "LAX", "$4400"   , "Absolute"   , 3, "4", true);
+	addEntry(0xBF, "LAX", "$4400,X" , "Absolute,X" , 3, "4+", true);
+	addEntry(0xA3, "LAX", "($44,X)" , "Indirect,X" , 2, "6", true);
+	addEntry(0xB3, "LAX", "($44),Y" , "Indirect,Y" , 2, "5+", true);
+
+	addEntry(0x87, "SAX", "$44"     , "Zero Page"  , 2, "3", true);
+	addEntry(0x97, "SAX", "$44,X"   , "Zero Page,Y", 2, "4", true);
+	addEntry(0x8F, "SAX", "$4400"   , "Absolute"   , 3, "4", true);
+	addEntry(0x83, "SAX", "($44,X)" , "Indirect,X" , 2, "6", true);
 }
 
 size_t CPU6502Disassembler::disassemble(uint8_t opCode, uint8_t arg0, uint8_t arg1, gsl::span<char> dst) const

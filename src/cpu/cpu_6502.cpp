@@ -540,6 +540,23 @@ void CPU6502::tick()
 		loadImmediate();
 		loadImmediate();
 		break;
+	case 0xA3:
+	case 0xA7:
+	case 0xAF:
+	case 0xB3:
+	case 0xB7:
+	case 0xBF:
+		// LAX (unofficial)
+		regX = regA = loadAddressModeX(addressMode);
+		setZN(regA);
+		break;
+	case 0x83:
+	case 0x87:
+	case 0x8F:
+	case 0x97:
+		// SAX (unofficial)
+		storeAddressModeX(regA & regX, addressMode);
+		break;
 	default:
 		error = ErrorType::UnknownInstruction;
 		errorInstruction = instruction;
