@@ -82,11 +82,12 @@ void CPU6502::tick()
 	case 0x1E:
 		// ASL
 		{
-			auto m = loadAddressMode(addressMode);
+			const auto address = getAddress(addressMode);
+			auto m = addressSpace->read(address);
 			setCarry(m & 0x80);
 			m <<= 1;
 			setZN(m);
-			storeAddressMode(m, addressMode);
+			addressSpace->write(address, m);
 			break;
 		}
 	case 0x90:
@@ -326,11 +327,12 @@ void CPU6502::tick()
 	case 0x5E:
 		// LSR
 		{
-			auto m = loadAddressMode(addressMode);
+			const auto address = getAddress(addressMode);
+			auto m = addressSpace->read(address);
 			setCarry(m & 1);
 			m >>= 1;
 			setZN(m);
-			storeAddressMode(m, addressMode);
+			addressSpace->write(address, m);
 			break;
 		}
 	case 0xEA:
@@ -370,9 +372,12 @@ void CPU6502::tick()
 		// ROL, accumulator
 		{
 			const uint8_t carry = (regP & FLAG_CARRY);
+			const auto address = getAddress(addressMode);
+			auto m = addressSpace->read(address);
 			setCarry(regA & 0x80);
 			regA = (regA << 1) | carry;
 			setZN(regA);
+			addressSpace->write(address, m);
 			break;
 		}
 	case 0x26:
@@ -381,12 +386,13 @@ void CPU6502::tick()
 	case 0x3E:
 		// ROL
 		{
-			auto m = loadAddressMode(addressMode);
+			const auto address = getAddress(addressMode);
+			auto m = addressSpace->read(address);
 			const uint8_t carry = (regP & FLAG_CARRY);
 			setCarry(m & 0x80);
 			m = (m << 1) | carry;
 			setZN(m);
-			storeAddressMode(m, addressMode);
+			addressSpace->write(address, m);
 			break;
 		}
 	case 0x6A:
@@ -404,12 +410,13 @@ void CPU6502::tick()
 	case 0x7E:
 		// ROR
 		{
-			auto m = loadAddressMode(addressMode);
+			const auto address = getAddress(addressMode);
+			auto m = addressSpace->read(address);
 			const uint8_t carry = (regP & FLAG_CARRY);
 			setCarry(m & 1);
 			m = (m >> 1) | (carry << 7);
 			setZN(m);
-			storeAddressMode(m, addressMode);
+			addressSpace->write(address, m);
 			break;
 		}
 	case 0x40:
