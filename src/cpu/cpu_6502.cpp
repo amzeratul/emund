@@ -270,53 +270,21 @@ void CPU6502::tick()
 		setZN(regA);
 		break;
 	case 0xA6:
-		// LDX, zero page
-		regX = loadZeroPage();
-		setZN(regX);
-		break;
 	case 0xA2:
-		// LDX, immediate
-		regX = loadImmediate();
-		setZN(regX);
-		break;
 	case 0xAE:
-		// LDX, absolute
-		regX = loadAbsolute();
-		setZN(regX);
-		break;
 	case 0xB6:
-		// LDX, zero page + Y
-		regX = loadZeroPagePlus(regY);
-		setZN(regX);
-		break;
 	case 0xBE:
-		// LDX, absolute + Y
-		regX = loadAbsolutePlus(regY);
+		// LDX
+		regX = loadAddressMode(addressMode);
 		setZN(regX);
 		break;
 	case 0xA0:
-		// LDY, immediate
-		regY = loadImmediate();
-		setZN(regY);
-		break;
 	case 0xA4:
-		// LDY, zero page
-		regY = loadZeroPage();
-		setZN(regY);
-		break;
 	case 0xAC:
-		// LDY, absolute
-		regY = loadAbsolute();
-		setZN(regY);
-		break;
 	case 0xB4:
-		// LDY, zero page + X
-		regY = loadZeroPagePlus(regX);
-		setZN(regY);
-		break;
 	case 0xBC:
-		// LDY, absolute + X
-		regY = loadAbsolutePlus(regX);
+		// LDY
+		regY = loadAddressMode(addressMode);
 		setZN(regY);
 		break;
 	case 0xEA:
@@ -399,28 +367,16 @@ void CPU6502::tick()
 		storeAddressMode(regA, addressMode);
 		break;
 	case 0x86:
-		// STX, zero page
-		storeZeroPage(regX);
-		break;
 	case 0x8E:
-		// STX, absolute
-		storeAbsolute(regX);
-		break;
 	case 0x96:
-		// STX, zero page + Y
-		storeZeroPagePlus(regX, regY);
+		// STX
+		storeAddressMode(regX, addressMode);
 		break;
 	case 0x84:
-		// STY, zero page
-		storeZeroPage(regY);
-		break;
 	case 0x8C:
-		// STY, absolute
-		storeAbsolute(regY);
-		break;
 	case 0x94:
-		// STY, zero page + X
-		storeZeroPagePlus(regY, regX);
+		// STY
+		storeAddressMode(regY, addressMode);
 		break;
 	default:
 		error = ErrorType::UnknownInstruction;
