@@ -29,20 +29,20 @@ void CPU6502::setAddressSpace(AddressSpace8BitBy16Bit& addressSpace)
 	this->addressSpace = &addressSpace;
 }
 
+void CPU6502::printDebugInfo()
+{
+	char bufferA[128];
+	char bufferB[128];
+
+	size_t n = disassembler->disassemble(addressSpace->read(regPC), addressSpace->read(regPC + 1), addressSpace->read(regPC + 2), bufferA);
+	std::snprintf(bufferB, 128, "%04hX                                            A:%02hhX X:%02hhX Y:%02hhX P:%02hhX SP:%02hhX", regPC, regA, regX, regY, regP, regS);
+	memcpy(bufferB + 6, bufferA, std::min(strlen(bufferA), size_t(40)));
+	
+	Logger::logDev(String(bufferB));
+}
+
 void CPU6502::tick()
 {
-	constexpr bool logging = true;
-	if (logging) {
-		char bufferA[128];
-		char bufferB[128];
-
-		size_t n = disassembler->disassemble(addressSpace->read(regPC), addressSpace->read(regPC + 1), addressSpace->read(regPC + 2), bufferA);
-		std::snprintf(bufferB, 128, "%04hX                                            A:%02hhX X:%02hhX Y:%02hhX P:%02hhX SP:%02hhX", regPC, regA, regX, regY, regP, regS);
-		memcpy(bufferB + 6, bufferA, std::min(strlen(bufferA), size_t(40)));
-		
-		Logger::logDev(String(bufferB));
-	}
-	
 	const auto instruction = loadImmediate();
 	const uint8_t addressMode = (instruction & 0x1C) >> 2;
 

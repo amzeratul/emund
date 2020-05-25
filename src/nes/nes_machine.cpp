@@ -30,10 +30,13 @@ void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 void NESMachine::tick(double t)
 {
 	while (!cpu->hasError()) {
+		cpu->printDebugInfo();
 		cpu->tick();
 
 		if (cpu->hasError()) {			
 			switch (cpu->getError()) {
+			case CPU6502::ErrorType::OK:
+				break;
 			case CPU6502::ErrorType::Break:
 				Logger::logError("Break instruction reached");
 				break;
@@ -41,17 +44,7 @@ void NESMachine::tick(double t)
 				Logger::logError("Unknown instruction: $" + toString(static_cast<int>(cpu->getErrorInstruction()), 16, 2).asciiUpper());
 			}
 
-			// Memory dump
-			constexpr size_t bytesPerRow = 16;
-			Logger::logDev("\nRAM dump:");
-			Logger::logDev("     00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
-			for (size_t i = 0; i < 2048; i += bytesPerRow) {
-				String row = toString(i, 16, 3) + ": ";
-				for (size_t j = 0; j < bytesPerRow; ++j) {
-					row += toString(uint32_t(ram[i + j]), 16, 2).asciiUpper() + " ";
-				}
-				Logger::logDev(row);
-			}
+			addressSpace->dump(0x0000, 0x1FFF);
 		}
 	}
 }

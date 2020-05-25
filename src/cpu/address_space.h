@@ -4,6 +4,7 @@
 #include <vector>
 #include <gsl/span>
 #include "../utils/macros.h"
+
 class AddressSpace8BitBy16Bit {
 public:
 	AddressSpace8BitBy16Bit();
@@ -22,6 +23,8 @@ public:
 
 	void map(gsl::span<uint8_t> memory, uint16_t startAddress, uint16_t endAddress);
 	void unmap(uint16_t startAddress, uint16_t endAddress);
+
+	void dump(uint16_t startAddress, uint16_t endAddress);
 
 private:
 	constexpr static size_t pageSize = 256;

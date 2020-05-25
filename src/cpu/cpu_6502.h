@@ -18,6 +18,7 @@ public:
 	CPU6502();
 	
 	void setAddressSpace(AddressSpace8BitBy16Bit& addressSpace);
+	void printDebugInfo();
 	void tick();
 
 	void reset();
