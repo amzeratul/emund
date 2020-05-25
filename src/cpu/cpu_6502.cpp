@@ -269,16 +269,24 @@ void CPU6502::tick()
 		regA = loadAddressMode(addressMode);
 		setZN(regA);
 		break;
-	case 0xA6:
 	case 0xA2:
+		// LDX, immediate mode
+		regX = loadImmediate();
+		setZN(regX);
+		break;
+	case 0xA6:
 	case 0xAE:
 	case 0xB6:
 	case 0xBE:
 		// LDX
-		regX = loadAddressMode(addressMode);
+		regX = loadAddressModeX(addressMode);
 		setZN(regX);
 		break;
 	case 0xA0:
+		// LDY, immediate mode
+		regY = loadImmediate();
+		setZN(regY);
+		break;
 	case 0xA4:
 	case 0xAC:
 	case 0xB4:
@@ -370,7 +378,7 @@ void CPU6502::tick()
 	case 0x8E:
 	case 0x96:
 		// STX
-		storeAddressMode(regX, addressMode);
+		storeAddressModeX(regX, addressMode);
 		break;
 	case 0x84:
 	case 0x8C:
@@ -482,6 +490,28 @@ uint8_t CPU6502::loadAddressMode(uint8_t mode)
 	default:
 		return loadAbsolutePlus(regX);
 	}
+}
+
+uint8_t CPU6502::loadAddressModeX(uint8_t mode)
+{
+	switch (mode) {
+	case 0:
+		return loadIndirectX();
+	case 1:
+		return loadZeroPage();
+	case 2:
+		return loadImmediate();
+	case 3:
+		return loadAbsolute();
+	case 4:
+		return loadIndirectY();
+	case 5:
+		return loadZeroPagePlus(regY);
+	case 6:
+		return loadAbsolutePlus(regY);
+	default:
+		return loadAbsolutePlus(regY);
+	}
 };
 
 void CPU6502::storeAbsolute(uint8_t value)
@@ -547,8 +577,37 @@ void CPU6502::storeAddressMode(uint8_t value, uint8_t mode)
 	case 6:
 		storeAbsolutePlus(value, regY);
 		return;
-	default:
+	case 7:
 		storeAbsolutePlus(value, regX);
+	default:
+		return;
+	}
+}
+
+void CPU6502::storeAddressModeX(uint8_t value, uint8_t mode)
+{
+	switch (mode) {
+	case 0:
+		return;
+	case 1:
+		storeZeroPage(value);
+		return;
+	case 2:
+		return;
+	case 3:
+		storeAbsolute(value);
+		return;
+	case 4:
+		storeIndirectY(value);
+		return;
+	case 5:
+		storeZeroPagePlus(value, regY);
+		return;
+	case 6:
+		return;
+	case 7:
+		storeAbsolutePlus(value, regY);
+	default:
 		return;
 	}
 };
