@@ -35,8 +35,8 @@ private:
 	uint8_t regY = 0;
 	uint16_t regPC = 0xC000;
 	uint8_t regS = 0xFD;
-	uint8_t regP = 0x24; // Should this be 0x34?
-	uint32_t cycle = 7; // ???
+	uint8_t regP = 0x34;
+	uint32_t cycle = 0;
 
 	uint16_t startPC = 0;
 	bool pageCrossed = false;
