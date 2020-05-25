@@ -30,7 +30,18 @@ void CPU6502::setAddressSpace(AddressSpace8BitBy16Bit& addressSpace)
 
 void CPU6502::tick()
 {
-	const auto prevPC = regPC;
+	constexpr bool logging = true;
+	if (logging) {
+		char bufferA[128];
+		char bufferB[128];
+
+		size_t n = disassembler->disassemble(addressSpace->read(regPC), addressSpace->read(regPC + 1), addressSpace->read(regPC + 2), bufferA);
+		std::snprintf(bufferB, 128, "%04hX                                            A:%02hhX X:%02hhX Y:%02hhX P:%02hhX SP:%02hhX", regPC, regA, regX, regY, regP, regS);
+		memcpy(bufferB + 6, bufferA, std::min(strlen(bufferA), size_t(40)));
+		
+		Logger::logDev(String(bufferB));
+	}
+	
 	const auto instruction = loadImmediate();
 
 	switch (instruction) {
@@ -236,15 +247,6 @@ void CPU6502::tick()
 	default:
 		error = ErrorType::UnknownInstruction;
 		errorInstruction = instruction;
-	}
-
-	constexpr bool logging = true;
-	if (logging) {
-		char buffer[128];
-		std::snprintf(buffer, 128, "%04hX  ", prevPC);
-		
-		size_t n = disassembler->disassemble(addressSpace->read(prevPC), addressSpace->read(prevPC + 1), addressSpace->read(prevPC + 2), gsl::span(buffer).subspan(6));
-		Logger::logInfo(String(buffer));
 	}
 }
 
