@@ -45,6 +45,12 @@ void CPU6502::tick()
 	const auto instruction = loadImmediate();
 
 	switch (instruction) {
+	case 0x10:
+		// BPL
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_NEGATIVE) == 0) {
+			regPC += offset;
+		}
+		break;
 	case 0x18:
 		// CLC
 		regP &= ~FLAG_CARRY;
@@ -59,6 +65,20 @@ void CPU6502::tick()
 			regPC = addr;
 			break;
 		}
+	case 0x24:
+		// BIT, Zero Page
+		bitTest(loadZeroPage());
+		break;
+	case 0x2C:
+		// BIT, Absolute
+		bitTest(loadAbsolute());
+		break;
+	case 0x30:
+		// BMI
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_NEGATIVE) != 0) {
+			regPC += offset;
+		}
+		break;
 	case 0x38:
 		// SEC
 		regP |= FLAG_CARRY;
@@ -66,6 +86,12 @@ void CPU6502::tick()
 	case 0x4C:
 		// JMP, immediate
 		regPC = loadImmediate16();
+		break;
+	case 0x50:
+		// BVC
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_OVERFLOW) == 0) {
+			regPC += offset;
+		}
 		break;
 	case 0x6C:
 		{
@@ -77,6 +103,12 @@ void CPU6502::tick()
 			regPC = addr1;
 			break;
 		}
+	case 0x70:
+		// BVS
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_OVERFLOW) != 0) {
+			regPC += offset;
+		}
+		break;
 	case 0x81:
 		// STA, (Indirect, X)
 		storeIndirectX(regA);
@@ -407,5 +439,10 @@ void CPU6502::compare(uint8_t value)
 {
 	const auto temp = value - regA;
 	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_NEGATIVE)) | (regA >= value ? FLAG_CARRY : 0) | (regA == value ? FLAG_CARRY : 0) | ((temp & 0x80) != 0 ? FLAG_NEGATIVE : 0);
+}
+
+void CPU6502::bitTest(uint8_t value)
+{
+	regP = (regP & ~(FLAG_ZERO | FLAG_OVERFLOW | FLAG_NEGATIVE)) | ((regA & value) == 0 ? FLAG_ZERO : 0) | (value & (FLAG_OVERFLOW | FLAG_NEGATIVE));
 }
 

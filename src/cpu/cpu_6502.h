@@ -61,4 +61,5 @@ private:
 	FORCEINLINE void storeStack(uint8_t value);
 	
 	FORCEINLINE void compare(uint8_t value);
+	FORCEINLINE void bitTest(uint8_t value);
 };
