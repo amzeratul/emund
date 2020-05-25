@@ -578,13 +578,19 @@ uint8_t CPU6502::loadZeroPagePlus(uint8_t offset)
 
 uint8_t CPU6502::loadIndirectX()
 {
-	const auto tablePos = loadImmediate();
-	return addressSpace->read(static_cast<uint16_t>(tablePos + regX));
+	const uint8_t immediate = loadImmediate();
+	const auto lowAddr = addressSpace->read(uint8_t(immediate + regX));
+	const auto highAddr = addressSpace->read(uint8_t(immediate + regX + 1));
+	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
+	return addressSpace->read(addr);
 };
 
 uint8_t CPU6502::loadIndirectY()
 {
-	const auto addr = loadImmediate16();
+	const auto tablePos = loadImmediate16();
+	const auto lowAddr = addressSpace->read(tablePos);
+	const auto highAddr = addressSpace->read(tablePos + 1);
+	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
 	return addressSpace->read(addr + regY);
 }
 
@@ -662,13 +668,19 @@ void CPU6502::storeZeroPagePlus(uint8_t value, uint8_t offset)
 
 void CPU6502::storeIndirectX(uint8_t value)
 {
-	const auto tablePos = loadImmediate();
-	addressSpace->write(static_cast<uint16_t>(tablePos + regX), value);
+	const uint8_t immediate = loadImmediate();
+	const auto lowAddr = addressSpace->read(uint8_t(immediate + regX));
+	const auto highAddr = addressSpace->read(uint8_t(immediate + regX + 1));
+	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
+	addressSpace->write(addr, value);
 }
 
 void CPU6502::storeIndirectY(uint8_t value)
 {
-	const auto addr = loadImmediate16();
+	const auto tablePos = loadImmediate16();
+	const auto lowAddr = addressSpace->read(tablePos);
+	const auto highAddr = addressSpace->read(tablePos + 1);
+	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
 	addressSpace->write(addr + regY, value);
 }
 
