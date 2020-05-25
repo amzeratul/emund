@@ -508,6 +508,38 @@ void CPU6502::tick()
 		regA = regY;
 		setZN(regA);
 		break;
+	case 0x1A:
+	case 0x3A:
+	case 0x5A:
+	case 0x7A:
+	case 0xDA:
+	case 0xFA:
+		// NOP (1-byte, unofficial)
+		break;
+	case 0x04:
+	case 0x14:
+	case 0x34:
+	case 0x44:
+	case 0x54:
+	case 0x64:
+	case 0x74:
+	case 0x80:
+	case 0xD4:
+	case 0xF4:
+		// NOP (2-byte, unofficial)
+		loadImmediate();
+		break;
+	case 0x0C:
+	case 0x1C:
+	case 0x3C:
+	case 0x5C:
+	case 0x7C:
+	case 0xDC:
+	case 0xFC:
+		// NOP (3-byte, unofficial)
+		loadImmediate();
+		loadImmediate();
+		break;
 	default:
 		error = ErrorType::UnknownInstruction;
 		errorInstruction = instruction;

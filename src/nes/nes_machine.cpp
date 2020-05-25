@@ -38,7 +38,7 @@ void NESMachine::tick(double t)
 				Logger::logError("Break instruction reached");
 				break;
 			case CPU6502::ErrorType::UnknownInstruction:
-				Logger::logError("Unknown instruction: " + toString(uint32_t(cpu->getErrorInstruction()), 16));
+				Logger::logError("Unknown instruction: $" + toString(static_cast<int>(cpu->getErrorInstruction()), 16, 2).asciiUpper());
 			}
 
 			// Memory dump

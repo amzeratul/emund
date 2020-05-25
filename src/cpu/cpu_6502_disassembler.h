@@ -18,9 +18,10 @@ private:
 		uint8_t nCycles = 1;
 		bool addCycleIfPage = false;
 		bool addCycleIfTaken = false;
+		bool unofficial = false;
 	};
 
 	std::vector<Entry> entries;
 	
-	void addEntry(uint8_t opCode, const char* mnemonic, const char* parameter, const char* mode, uint8_t nBytes, const char* nCycles);
+	void addEntry(uint8_t opCode, const char* mnemonic, const char* parameter, const char* mode, uint8_t nBytes, const char* nCycles, bool unofficial = false);
 };

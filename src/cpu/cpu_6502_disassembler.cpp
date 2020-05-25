@@ -158,6 +158,34 @@ CPU6502Disassembler::CPU6502Disassembler()
 	addEntry(0x98, "TYA", ""        , "Implied"    , 1, "2");
 	addEntry(0x88, "DEY", ""        , "Implied"    , 1, "2");
 	addEntry(0xC8, "INY", ""        , "Implied"    , 1, "2");
+
+	addEntry(0x1A, "NOP", ""        , "Implied"    , 1, "1", true);
+	addEntry(0x3A, "NOP", ""        , "Implied"    , 1, "1", true);
+	addEntry(0x5A, "NOP", ""        , "Implied"    , 1, "1", true);
+	addEntry(0x7A, "NOP", ""        , "Implied"    , 1, "1", true);
+	addEntry(0xDA, "NOP", ""        , "Implied"    , 1, "1", true);
+	addEntry(0xFA, "NOP", ""        , "Implied"    , 1, "1", true);
+
+	addEntry(0x04, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x44, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x64, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x14, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x34, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x44, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x54, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x64, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x74, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x80, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0xD4, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0xF4, "NOP", ""        , "Implied"    , 1, "2", true);
+
+	addEntry(0x0C, "NOP", ""        , "Implied"    , 1, "3", true);
+	addEntry(0x1C, "NOP", ""        , "Implied"    , 1, "3", true);
+	addEntry(0x3C, "NOP", ""        , "Implied"    , 1, "3", true);
+	addEntry(0x5C, "NOP", ""        , "Implied"    , 1, "3", true);
+	addEntry(0x7C, "NOP", ""        , "Implied"    , 1, "3", true);
+	addEntry(0xDC, "NOP", ""        , "Implied"    , 1, "3", true);
+	addEntry(0xFC, "NOP", ""        , "Implied"    , 1, "3", true);
 }
 
 size_t CPU6502Disassembler::disassemble(uint8_t opCode, uint8_t arg0, uint8_t arg1, gsl::span<char> dst) const
@@ -165,18 +193,19 @@ size_t CPU6502Disassembler::disassemble(uint8_t opCode, uint8_t arg0, uint8_t ar
 	const auto& e = entries[opCode];
 
 	// Op codes
+	const char unofficial = e.unofficial ? '*' : ' ';
 	if (e.nBytes == 1) {
-		std::snprintf(dst.data(), dst.size(), "%02hhX        %s", opCode, e.mnemonic);
+		std::snprintf(dst.data(), dst.size(), "%02hhX       %c%s", opCode, unofficial, e.mnemonic);
 	} else if (e.nBytes == 2) {
-		std::snprintf(dst.data(), dst.size(), "%02hhX %02hhX     %s", opCode, arg0, e.mnemonic);
+		std::snprintf(dst.data(), dst.size(), "%02hhX %02hhX    %c%s", opCode, arg0, unofficial, e.mnemonic);
 	} else if (e.nBytes == 3) {
-		std::snprintf(dst.data(), dst.size(), "%02hhX %02hhX %02hhX  %s", opCode, arg0, arg1, e.mnemonic);
+		std::snprintf(dst.data(), dst.size(), "%02hhX %02hhX %02hhX %c%s", opCode, arg0, arg1, unofficial, e.mnemonic);
 	}
 
 	return e.nBytes;
 }
 
-void CPU6502Disassembler::addEntry(uint8_t opCode, const char* mnemonic, const char* parameter, const char* mode, uint8_t nBytes, const char* nCycles)
+void CPU6502Disassembler::addEntry(uint8_t opCode, const char* mnemonic, const char* parameter, const char* mode, uint8_t nBytes, const char* nCycles, bool unofficial)
 {
 	auto& e = entries[opCode];
 	std::strncpy(e.mnemonic, mnemonic, 4);
@@ -186,4 +215,5 @@ void CPU6502Disassembler::addEntry(uint8_t opCode, const char* mnemonic, const c
 	e.nCycles = nCycles[0] - '0';
 	e.addCycleIfPage = nCycles[1] == '+';
 	e.addCycleIfPage = nCycles[1] == '+' && nCycles[2] == '+';
+	e.unofficial = unofficial;
 };
