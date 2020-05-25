@@ -47,3 +47,8 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 {
 	// TODO
 }
+
+void NESPPU::startVBlank()
+{
+	ppuStatus.vBlank = true;
+}

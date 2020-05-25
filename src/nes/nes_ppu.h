@@ -16,6 +16,8 @@ public:
 	uint8_t readRegister(uint16_t address);
 	void writeRegister(uint16_t address, uint8_t value);
 
+	void startVBlank();
+
 private:
 	uint32_t cycle = 0;
 

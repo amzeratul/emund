@@ -51,9 +51,14 @@ void NESMachine::tick(double t)
 	if (!running) {
 		return;
 	}
-	
-	while (running) {
-		cpu->printDebugInfo();
+
+	const uint32_t nCPUCycles = static_cast<uint32_t>(std::lround(t * 1789773));
+	const uint32_t startCPU = cpu->getCycle();
+	const uint32_t endCPU = startCPU + nCPUCycles;
+
+	ppu->startVBlank();
+	while (cpu->getCycle() < endCPU) {
+		//cpu->printDebugInfo();
 		cpu->tick();
 
 		if (cpu->hasError()) {			
