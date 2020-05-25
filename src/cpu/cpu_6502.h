@@ -67,4 +67,5 @@ private:
 	FORCEINLINE void compare(uint8_t reg, uint8_t memory);
 	FORCEINLINE void bitTest(uint8_t value);
 	FORCEINLINE void addWithCarry(uint8_t value);
+	FORCEINLINE void subWithCarry(uint8_t value);
 };

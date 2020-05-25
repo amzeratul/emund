@@ -323,6 +323,17 @@ void CPU6502::tick()
 		regPC |= uint16_t(loadStack()) << 8;
 		++regPC;
 		break;
+	case 0xE1:
+	case 0xE5:
+	case 0xE9:
+	case 0xED:
+	case 0xF1:
+	case 0xF5:
+	case 0xF9:
+	case 0xFD:
+		// SBC
+		subWithCarry(loadAddressMode(addressMode));
+		break;
 	case 0x38:
 		// SEC
 		regP |= FLAG_CARRY;
@@ -576,6 +587,20 @@ void CPU6502::addWithCarry(uint8_t value)
 
 	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_OVERFLOW | FLAG_NEGATIVE))
 		| ((intermediateResult & 0x100) >> 8) // Set carry flag
+		| (regA == 0 ? FLAG_ZERO : 0) // Set zero flag
+		| (((a ^ regA) & (value ^ regA) & 0x80) != 0 ? FLAG_OVERFLOW : 0) // Set overflow flag. See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+		| (regA & 0x80); // Set negative flag
+}
+
+void CPU6502::subWithCarry(uint8_t value)
+{
+	const uint8_t a = regA;
+	const uint16_t intermediateResult = static_cast<uint16_t>(a) - static_cast<uint16_t>(value) - static_cast<uint16_t>(~regP & FLAG_CARRY);
+	
+	regA = static_cast<uint8_t>(intermediateResult); // Narrow result
+
+	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_OVERFLOW | FLAG_NEGATIVE))
+		| (((intermediateResult & 0x100) >> 8) ^ FLAG_CARRY) // Set carry flag
 		| (regA == 0 ? FLAG_ZERO : 0) // Set zero flag
 		| (((a ^ regA) & (value ^ regA) & 0x80) != 0 ? FLAG_OVERFLOW : 0) // Set overflow flag. See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 		| (regA & 0x80); // Set negative flag
