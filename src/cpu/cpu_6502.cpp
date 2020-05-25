@@ -262,9 +262,9 @@ void CPU6502::tick()
 	case 0x6C:
 		{
 			// JMP, indirect
-			const auto addr0 = loadImmediate16();
-			const auto lowAddr1 = addressSpace->read(addr0);
-			const auto highAddr1 = addressSpace->read(addr0 + 1);
+			const uint16_t addr0 = loadImmediate16();
+			const uint8_t lowAddr1 = addressSpace->read(addr0);
+			const uint8_t highAddr1 = addressSpace->read(uint8_t((addr0 & 0xFF) + 1) | uint16_t(addr0 & 0xFF00));
 			const auto addr1 = static_cast<uint16_t>(lowAddr1) | (static_cast<uint16_t>(highAddr1) << 8);
 			regPC = addr1;
 			break;
@@ -580,7 +580,7 @@ uint8_t CPU6502::loadAddressModeX(uint8_t mode)
 	if (mode == 2) {
 		return loadImmediate();
 	}
-	return addressSpace->read(getAddress(mode));
+	return addressSpace->read(getAddressX(mode));
 }
 
 uint16_t CPU6502::getAbsolute()
@@ -606,7 +606,7 @@ uint16_t CPU6502::getZeroPage()
 uint16_t CPU6502::getZeroPagePlus(uint8_t offset)
 {
 	const auto lowAddr = loadImmediate();
-	return static_cast<uint16_t>(lowAddr + offset);
+	return static_cast<uint16_t>((lowAddr + offset) & 0xFF);
 }
 
 uint16_t CPU6502::getIndirectX()
@@ -663,9 +663,9 @@ uint16_t CPU6502::getAddressX(uint8_t mode)
 	case 4:
 		return getIndirectY();
 	case 5:
-		return getZeroPagePlus(regX);
+		return getZeroPagePlus(regY);
 	case 6:
-		return getAbsolutePlus(regY);
+		return getAbsolutePlus(regX);
 	default:
 		return getAbsolutePlus(regY);
 	}
