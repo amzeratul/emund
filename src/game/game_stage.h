@@ -13,7 +13,7 @@ public:
 	
 	void init() override;
 
-	void onVariableUpdate(Time) override;
+	void onFixedUpdate(Time) override;
 	void onRender(RenderContext&) const override;
 
 private:

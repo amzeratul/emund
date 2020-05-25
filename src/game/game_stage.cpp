@@ -20,9 +20,9 @@ void GameStage::init()
 	nes->loadROM(std::move(rom));
 }
 
-void GameStage::onVariableUpdate(Time t)
+void GameStage::onFixedUpdate(Time)
 {
-	nes->tick(t);
+	nes->tickFrame();
 }
 
 void GameStage::onRender(RenderContext& rc) const

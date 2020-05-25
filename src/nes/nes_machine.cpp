@@ -46,13 +46,15 @@ void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 	running = true;
 }
 
-void NESMachine::tick(double t)
+void NESMachine::tickFrame()
 {
 	if (!running) {
 		return;
 	}
 
-	const uint32_t nCPUCycles = static_cast<uint32_t>(std::lround(t * 1789773));
+	const uint32_t masterClockCycles = 357366;
+
+	const uint32_t nCPUCycles = masterClockCycles / 12;
 	const uint32_t startCPU = cpu->getCycle();
 	const uint32_t endCPU = startCPU + nCPUCycles;
 

@@ -14,7 +14,7 @@ public:
 	~NESMachine();
 
 	void loadROM(std::unique_ptr<NESRom> rom);
-	void tick(double t);
+	void tickFrame();
 
 	uint8_t readRegister(uint16_t address);
 	void writeRegister(uint16_t address, uint8_t value);

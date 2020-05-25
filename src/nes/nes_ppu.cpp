@@ -4,6 +4,7 @@
 
 NESPPU::NESPPU()
 {
+	ppuStatus.value = 0;
 	ppuStatus.vBlank = true;
 }
 
