@@ -64,7 +64,7 @@ private:
 	FORCEINLINE void storeStack(uint8_t value);
 	FORCEINLINE uint8_t loadStack();
 	
-	FORCEINLINE void compare(uint8_t value);
+	FORCEINLINE void compare(uint8_t reg, uint8_t memory);
 	FORCEINLINE void bitTest(uint8_t value);
 	FORCEINLINE void addWithCarry(uint8_t value);
 };

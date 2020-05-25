@@ -159,7 +159,25 @@ void CPU6502::tick()
 	case 0xD9:
 	case 0xDD:
 		// CMP
-		compare(loadAddressMode(addressMode));
+		compare(regA, loadAddressMode(addressMode));
+		break;
+	case 0xE0:
+		// CPX
+		compare(regX, loadImmediate());
+		break;
+	case 0xE4:
+	case 0xEC:
+		// CPX
+		compare(regX, loadAddressMode(addressMode));
+		break;
+	case 0xC0:
+		// CPY
+		compare(regY, loadImmediate());
+		break;
+	case 0xC4:
+	case 0xCC:
+		// CPY
+		compare(regY, loadAddressMode(addressMode));
 		break;
 	case 0x41:
 	case 0x45:
@@ -536,12 +554,12 @@ uint8_t CPU6502::loadStack()
 	return addressSpace->read(0x100 + ++regS);
 };
 
-void CPU6502::compare(uint8_t value)
+void CPU6502::compare(uint8_t reg, uint8_t memory)
 {
 	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_NEGATIVE))
-		| (regA >= value ? FLAG_CARRY : 0)
-		| (regA == value ? FLAG_ZERO : 0)
-		| (((regA - value) & 0x80) != 0 ? FLAG_NEGATIVE : 0);
+		| (reg >= memory ? FLAG_CARRY : 0)
+		| (reg == memory ? FLAG_ZERO : 0)
+		| (((reg - memory) & 0x80) != 0 ? FLAG_NEGATIVE : 0);
 }
 
 void CPU6502::bitTest(uint8_t value)
