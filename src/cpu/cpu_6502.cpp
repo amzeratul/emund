@@ -93,6 +93,12 @@ void CPU6502::tick()
 			regPC += offset;
 		}
 		break;
+	case 0x60:
+		// RTS
+		regPC = loadStack();
+		regPC |= uint16_t(loadStack()) << 8;
+		++regPC;
+		break;
 	case 0x6C:
 		{
 			// JMP, indirect
@@ -433,6 +439,11 @@ void CPU6502::storeIndirectY(uint8_t value)
 void CPU6502::storeStack(uint8_t value)
 {
 	addressSpace->write(0x100 + regS--, value);
+}
+
+uint8_t CPU6502::loadStack()
+{
+	return addressSpace->read(0x100 + ++regS);
 };
 
 void CPU6502::compare(uint8_t value)

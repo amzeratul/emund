@@ -59,6 +59,7 @@ private:
 	FORCEINLINE void storeIndirectY(uint8_t value);
 
 	FORCEINLINE void storeStack(uint8_t value);
+	FORCEINLINE uint8_t loadStack();
 	
 	FORCEINLINE void compare(uint8_t value);
 	FORCEINLINE void bitTest(uint8_t value);
