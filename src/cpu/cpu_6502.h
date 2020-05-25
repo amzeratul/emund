@@ -33,7 +33,7 @@ private:
 	uint8_t regY = 0;
 	uint16_t regPC = 0xC000;
 	uint8_t regS = 0xFD;
-	uint8_t regP = 0x34;
+	uint8_t regP = 0x24;
 
 	std::unique_ptr<CPU6502Disassembler> disassembler;
 
@@ -50,9 +50,15 @@ private:
 	FORCEINLINE uint8_t loadZeroPagePlus(uint8_t offset);
 	FORCEINLINE uint8_t loadIndirectX();
 	FORCEINLINE uint8_t loadIndirectY();
+
 	FORCEINLINE void storeAbsolute(uint8_t value);
+	FORCEINLINE void storeAbsolutePlus(uint8_t value, uint8_t offset);
 	FORCEINLINE void storeZeroPage(uint8_t value);
 	FORCEINLINE void storeZeroPagePlus(uint8_t value, uint8_t offset);
+	FORCEINLINE void storeIndirectX(uint8_t value);
+	FORCEINLINE void storeIndirectY(uint8_t value);
+
 	FORCEINLINE void storeStack(uint8_t value);
+	
 	FORCEINLINE void compare(uint8_t value);
 };
