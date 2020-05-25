@@ -19,6 +19,46 @@ constexpr uint8_t FLAG_ALL = 0xFF;
 #pragma warning(disable: 4996)
 #endif
 
+constexpr static uint8_t timings[256] = {
+//  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+	7, 6, 0, 0, 3, 3, 5, 0, 3, 2, 2, 0, 4, 4, 6, 0, // 00
+	2, 5, 0, 0, 4, 4, 6, 0, 2, 4, 2, 0, 4, 4, 7, 0, // 10
+	6, 6, 0, 0, 3, 3, 5, 0, 4, 2, 2, 0, 4, 4, 6, 0, // 20
+	2, 5, 0, 0, 4, 4, 6, 0, 2, 4, 2, 0, 4, 4, 7, 0, // 30
+	6, 6, 0, 0, 3, 3, 5, 0, 3, 2, 2, 0, 3, 4, 6, 0, // 40
+	2, 5, 0, 0, 4, 4, 6, 0, 2, 4, 2, 0, 4, 4, 7, 0, // 50
+	6, 6, 0, 0, 3, 3, 5, 0, 4, 2, 2, 0, 5, 4, 6, 0, // 60
+	2, 5, 0, 0, 4, 4, 6, 0, 2, 4, 2, 0, 4, 4, 7, 0, // 70
+	3, 6, 0, 6, 3, 3, 3, 3, 2, 0, 2, 0, 4, 4, 4, 4, // 80
+	2, 6, 0, 0, 4, 4, 4, 4, 2, 5, 2, 0, 0, 5, 0, 0, // 90
+	2, 6, 2, 6, 3, 3, 3, 3, 2, 2, 2, 0, 4, 4, 4, 4, // A0
+	2, 5, 0, 5, 4, 4, 4, 4, 2, 4, 2, 0, 4, 4, 4, 4, // B0
+	2, 6, 0, 0, 3, 3, 5, 0, 2, 2, 2, 0, 4, 4, 6, 0, // C0
+	2, 5, 0, 0, 4, 4, 6, 0, 2, 4, 2, 0, 4, 4, 7, 0, // D0
+	2, 6, 0, 0, 3, 3, 5, 0, 2, 2, 2, 2, 4, 4, 6, 0, // E0
+	2, 5, 0, 0, 4, 4, 6, 0, 2, 4, 2, 0, 4, 4, 7, 0  // F0
+};
+
+constexpr static uint8_t timingExtra[256] = {
+//  0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 00
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, // 10
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 20
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, // 30
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 40
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, // 50
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 60
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, // 70
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 80
+	1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // 90
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // A0
+	1, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, // B0
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // C0
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, // D0
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // E0
+	1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0  // F0
+};
+
 CPU6502::CPU6502()
 {
 	disassembler = std::make_unique<CPU6502Disassembler>();
@@ -35,7 +75,7 @@ void CPU6502::printDebugInfo()
 	char bufferB[128];
 
 	size_t n = disassembler->disassemble(addressSpace->read(regPC), addressSpace->read(regPC + 1), addressSpace->read(regPC + 2), bufferA);
-	std::snprintf(bufferB, 128, "%04hX                                            A:%02hhX X:%02hhX Y:%02hhX P:%02hhX SP:%02hhX", regPC, regA, regX, regY, regP, regS);
+	std::snprintf(bufferB, 128, "%04hX                                            A:%02hhX X:%02hhX Y:%02hhX P:%02hhX SP:%02hhX CYC: %i", regPC, regA, regX, regY, regP, regS, cycle);
 	memcpy(bufferB + 6, bufferA, std::min(strlen(bufferA), size_t(40)));
 	
 	Logger::logDev(String(bufferB));
@@ -43,6 +83,8 @@ void CPU6502::printDebugInfo()
 
 void CPU6502::tick()
 {
+	startPC = regPC;
+	pageCrossed = false;
 	const auto instruction = loadImmediate();
 	const uint8_t addressMode = (instruction & 0x1C) >> 2;
 
@@ -94,12 +136,14 @@ void CPU6502::tick()
 		// BCC
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) == 0) {
 			regPC += offset;
+			updateBranchTakenTiming();
 		}
 		break;
 	case 0xB0:
 		// BCS
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) != 0) {
 			regPC += offset;
+			updateBranchTakenTiming();
 		}
 		break;
 	case 0x24:
@@ -114,24 +158,28 @@ void CPU6502::tick()
 		// BEQ
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_ZERO) != 0) {
 			regPC += offset;
+			updateBranchTakenTiming();
 		}
 		break;
 	case 0x30:
 		// BMI
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_NEGATIVE) != 0) {
 			regPC += offset;
+			updateBranchTakenTiming();
 		}
 		break;
 	case 0xD0:
 		// BNE, Relative
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_ZERO) == 0) {
 			regPC += offset;
+			updateBranchTakenTiming();
 		}
 		break;
 	case 0x10:
 		// BPL
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_NEGATIVE) == 0) {
 			regPC += offset;
+			updateBranchTakenTiming();
 		}
 		break;
 	case 0x00:
@@ -146,12 +194,14 @@ void CPU6502::tick()
 		// BVC
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_OVERFLOW) == 0) {
 			regPC += offset;
+			updateBranchTakenTiming();
 		}
 		break;
 	case 0x70:
 		// BVS
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_OVERFLOW) != 0) {
 			regPC += offset;
+			updateBranchTakenTiming();
 		}
 		break;
 	case 0x18:
@@ -562,6 +612,8 @@ void CPU6502::tick()
 		error = ErrorType::UnknownInstruction;
 		errorInstruction = instruction;
 	}
+
+	cycle += timings[instruction] + (timingExtra[instruction] & uint8_t(pageCrossed));
 }
 
 void CPU6502::reset()
@@ -645,7 +697,9 @@ uint16_t CPU6502::getAbsolutePlus(uint8_t offset)
 	const auto lowAddr = loadImmediate();
 	const auto highAddr = loadImmediate();
 	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	return addr + offset;
+	const auto finalAddr = addr + offset;
+	pageCrossed = !isSamePage(addr, finalAddr);
+	return finalAddr;
 }
 
 uint16_t CPU6502::getZeroPage()
@@ -672,7 +726,9 @@ uint16_t CPU6502::getIndirectY()
 	const auto lowAddr = addressSpace->read(uint8_t(tablePos));
 	const auto highAddr = addressSpace->read(uint8_t(tablePos + 1));
 	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	return addr + regY;
+	const auto finalAddr = addr + regY;
+	pageCrossed = !isSamePage(addr, finalAddr);
+	return finalAddr;
 }
 
 uint16_t CPU6502::getAddress(uint8_t mode)
@@ -780,5 +836,16 @@ void CPU6502::subWithCarry(uint8_t value)
 		| (regA == 0 ? FLAG_ZERO : 0) // Set zero flag
 		| (((a ^ regA) & ((255 - value) ^ regA) & 0x80) != 0 ? FLAG_OVERFLOW : 0) // Set overflow flag. See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 		| (regA & 0x80); // Set negative flag
+}
+
+void CPU6502::updateBranchTakenTiming()
+{
+	// The +2 means that we'll check the same branch we were already on after this instruction executed
+	cycle += isSamePage(regPC, startPC + 2) ? 1 : 2;
+}
+
+bool CPU6502::isSamePage(uint16_t addr0, uint16_t addr1)
+{
+	return (addr0 & 0xFF00) == (addr1 & 0xFF00);
 }
 

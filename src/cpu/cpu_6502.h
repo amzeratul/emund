@@ -36,7 +36,11 @@ private:
 	uint16_t regPC = 0xC000;
 	uint8_t regS = 0xFD;
 	uint8_t regP = 0x24; // Should this be 0x34?
+	uint32_t cycle = 7; // ???
 
+	uint16_t startPC = 0;
+	bool pageCrossed = false;
+	
 	std::unique_ptr<CPU6502Disassembler> disassembler;
 
 	ErrorType error = ErrorType::OK;
@@ -71,4 +75,7 @@ private:
 	FORCEINLINE void bitTest(uint8_t value);
 	FORCEINLINE void addWithCarry(uint8_t value);
 	FORCEINLINE void subWithCarry(uint8_t value);
+
+	FORCEINLINE void updateBranchTakenTiming();
+	FORCEINLINE bool isSamePage(uint16_t addr0, uint16_t addr1);
 };

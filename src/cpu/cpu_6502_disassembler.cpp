@@ -7,6 +7,7 @@
 CPU6502Disassembler::CPU6502Disassembler()
 {
 	entries.resize(256);
+	
 	addEntry(0x69, "ADC", "#$44"    , "Immediate"  , 2, "2");
 	addEntry(0x65, "ADC", "$44"     , "Zero Page"  , 2, "3");
 	addEntry(0x75, "ADC", "$44,X"   , "Zero Page,X", 2, "4");
@@ -159,33 +160,33 @@ CPU6502Disassembler::CPU6502Disassembler()
 	addEntry(0x88, "DEY", ""        , "Implied"    , 1, "2");
 	addEntry(0xC8, "INY", ""        , "Implied"    , 1, "2");
 
-	addEntry(0x1A, "NOP", ""        , "Implied"    , 1, "1", true);
-	addEntry(0x3A, "NOP", ""        , "Implied"    , 1, "1", true);
-	addEntry(0x5A, "NOP", ""        , "Implied"    , 1, "1", true);
-	addEntry(0x7A, "NOP", ""        , "Implied"    , 1, "1", true);
-	addEntry(0xDA, "NOP", ""        , "Implied"    , 1, "1", true);
-	addEntry(0xFA, "NOP", ""        , "Implied"    , 1, "1", true);
+	addEntry(0x1A, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x3A, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x5A, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0x7A, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0xDA, "NOP", ""        , "Implied"    , 1, "2", true);
+	addEntry(0xFA, "NOP", ""        , "Implied"    , 1, "2", true);
 
-	addEntry(0x04, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0x44, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0x64, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0x14, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0x34, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0x44, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0x54, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0x64, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0x74, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0x80, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0xD4, "NOP", ""        , "Implied"    , 2, "1", true);
-	addEntry(0xF4, "NOP", ""        , "Implied"    , 2, "1", true);
+	addEntry(0x04, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0x44, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0x64, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0x14, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0x34, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0x44, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0x54, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0x64, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0x74, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0x80, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0xD4, "NOP", ""        , "Implied"    , 2, "3", true);
+	addEntry(0xF4, "NOP", ""        , "Implied"    , 2, "3", true);
 
-	addEntry(0x0C, "NOP", ""        , "Implied"    , 3, "1", true);
-	addEntry(0x1C, "NOP", ""        , "Implied"    , 3, "1", true);
-	addEntry(0x3C, "NOP", ""        , "Implied"    , 3, "1", true);
-	addEntry(0x5C, "NOP", ""        , "Implied"    , 3, "1", true);
-	addEntry(0x7C, "NOP", ""        , "Implied"    , 3, "1", true);
-	addEntry(0xDC, "NOP", ""        , "Implied"    , 3, "1", true);
-	addEntry(0xFC, "NOP", ""        , "Implied"    , 3, "1", true);
+	addEntry(0x0C, "NOP", ""        , "Implied"    , 3, "4", true);
+	addEntry(0x1C, "NOP", ""        , "Implied"    , 3, "4", true);
+	addEntry(0x3C, "NOP", ""        , "Implied"    , 3, "4", true);
+	addEntry(0x5C, "NOP", ""        , "Implied"    , 3, "4", true);
+	addEntry(0x7C, "NOP", ""        , "Implied"    , 3, "4", true);
+	addEntry(0xDC, "NOP", ""        , "Implied"    , 3, "4", true);
+	addEntry(0xFC, "NOP", ""        , "Implied"    , 3, "4", true);
 
 	addEntry(0xA7, "LAX", "$44"     , "Zero Page"  , 2, "3", true);
 	addEntry(0xB7, "LAX", "$44,X"   , "Zero Page,X", 2, "4", true);
