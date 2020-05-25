@@ -33,7 +33,7 @@ private:
 	uint8_t regY = 0;
 	uint16_t regPC = 0xC000;
 	uint8_t regS = 0xFD;
-	uint8_t regP = 0x24;
+	uint8_t regP = 0x24; // Should be 0x34?
 
 	std::unique_ptr<CPU6502Disassembler> disassembler;
 

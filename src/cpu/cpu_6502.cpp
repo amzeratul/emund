@@ -57,6 +57,18 @@ void CPU6502::tick()
 		// ADC
 		addWithCarry(loadAddressMode(addressMode));
 		break;
+	case 0x21:
+	case 0x25:
+	case 0x29:
+	case 0x2D:
+	case 0x31:
+	case 0x35:
+	case 0x39:
+	case 0x3D:
+		// AND
+		regA = regA & loadAddressMode(addressMode);
+		setZN(regA);
+		break;
 	case 0x90:
 		// BCC
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) == 0) {
@@ -139,6 +151,18 @@ void CPU6502::tick()
 	case 0xDD:
 		// CMP
 		compare(loadAddressMode(addressMode));
+		break;
+	case 0x41:
+	case 0x45:
+	case 0x49:
+	case 0x4D:
+	case 0x51:
+	case 0x55:
+	case 0x59:
+	case 0x5D:
+		// EOR
+		regA = regA ^ loadAddressMode(addressMode);
+		setZN(regA);
 		break;
 	case 0x4C:
 		// JMP, immediate
@@ -228,6 +252,35 @@ void CPU6502::tick()
 		break;
 	case 0xEA:
 		// NOP
+		break;
+	case 0x01:
+	case 0x05:
+	case 0x09:
+	case 0x0D:
+	case 0x11:
+	case 0x15:
+	case 0x19:
+	case 0x1D:
+		// ORA
+		regA = regA | loadAddressMode(addressMode);
+		setZN(regA);
+		break;
+	case 0x08:
+		// PHP
+		storeStack(regP);
+		break;
+	case 0x48:
+		// PHA
+		storeStack(regA);
+		break;
+	case 0x68:
+		// PLA
+		regA = loadStack();
+		setZN(regA);
+		break;
+	case 0x28:
+		// PLP
+		regP = loadStack();
 		break;
 	case 0x60:
 		// RTS
