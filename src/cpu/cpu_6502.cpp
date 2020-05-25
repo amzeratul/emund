@@ -539,208 +539,138 @@ void CPU6502::setCarry(uint8_t value)
 uint8_t CPU6502::loadImmediate()
 {
 	return addressSpace->read(regPC++);
-};
+}
 
 uint16_t CPU6502::loadImmediate16()
 {
 	const auto lowAddr = loadImmediate();
 	const auto highAddr = loadImmediate();
 	return static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-};
-
-uint8_t CPU6502::loadAbsolute()
-{
-	const auto lowAddr = loadImmediate();
-	const auto highAddr = loadImmediate();
-	const auto addr =  static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	return addressSpace->read(addr);
-};
-
-uint8_t CPU6502::loadAbsolutePlus(uint8_t offset)
-{
-	const auto lowAddr = loadImmediate();
-	const auto highAddr = loadImmediate();
-	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	return addressSpace->read(addr + offset);
-};
+}
 
 uint8_t CPU6502::loadZeroPage()
 {
-	const auto lowAddr = loadImmediate();
-	return addressSpace->read(static_cast<uint16_t>(lowAddr));
-};
+	return addressSpace->read(getZeroPage());
+}
 
-uint8_t CPU6502::loadZeroPagePlus(uint8_t offset)
+uint8_t CPU6502::loadAbsolute()
 {
-	const auto lowAddr = loadImmediate();
-	return addressSpace->read(static_cast<uint16_t>(lowAddr + offset));
-};
-
-uint8_t CPU6502::loadIndirectX()
-{
-	const uint8_t immediate = loadImmediate();
-	const auto lowAddr = addressSpace->read(uint8_t(immediate + regX));
-	const auto highAddr = addressSpace->read(uint8_t(immediate + regX + 1));
-	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	return addressSpace->read(addr);
-};
-
-uint8_t CPU6502::loadIndirectY()
-{
-	const auto tablePos = loadImmediate16();
-	const auto lowAddr = addressSpace->read(tablePos);
-	const auto highAddr = addressSpace->read(tablePos + 1);
-	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	return addressSpace->read(addr + regY);
+	return addressSpace->read(getAbsolute());
 }
 
 uint8_t CPU6502::loadAddressMode(uint8_t mode)
 {
-	switch (mode) {
-	case 0:
-		return loadIndirectX();
-	case 1:
-		return loadZeroPage();
-	case 2:
+	if (mode == 2) {
 		return loadImmediate();
-	case 3:
-		return loadAbsolute();
-	case 4:
-		return loadIndirectY();
-	case 5:
-		return loadZeroPagePlus(regX);
-	case 6:
-		return loadAbsolutePlus(regY);
-	default:
-		return loadAbsolutePlus(regX);
 	}
+	return addressSpace->read(getAddress(mode));
 }
 
 uint8_t CPU6502::loadAddressModeX(uint8_t mode)
 {
-	switch (mode) {
-	case 0:
-		return loadIndirectX();
-	case 1:
-		return loadZeroPage();
-	case 2:
+	if (mode == 2) {
 		return loadImmediate();
-	case 3:
-		return loadAbsolute();
-	case 4:
-		return loadIndirectY();
-	case 5:
-		return loadZeroPagePlus(regY);
-	case 6:
-		return loadAbsolutePlus(regY);
-	default:
-		return loadAbsolutePlus(regY);
 	}
-};
+	return addressSpace->read(getAddress(mode));
+}
 
-void CPU6502::storeAbsolute(uint8_t value)
+uint16_t CPU6502::getAbsolute()
+{
+	const auto lowAddr = loadImmediate();
+	const auto highAddr = loadImmediate();
+	return static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
+}
+
+uint16_t CPU6502::getAbsolutePlus(uint8_t offset)
 {
 	const auto lowAddr = loadImmediate();
 	const auto highAddr = loadImmediate();
 	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	addressSpace->write(addr, value);
+	return addr + offset;
 }
 
-void CPU6502::storeAbsolutePlus(uint8_t value, uint8_t offset)
+uint16_t CPU6502::getZeroPage()
 {
-	const auto lowAddr = loadImmediate();
-	const auto highAddr = loadImmediate();
-	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	addressSpace->write(addr + offset, value);
-};
-
-void CPU6502::storeZeroPage(uint8_t value)
-{
-	const auto lowAddr = loadImmediate();
-	addressSpace->write(static_cast<uint16_t>(lowAddr), value);
-};
-
-void CPU6502::storeZeroPagePlus(uint8_t value, uint8_t offset)
-{
-	const auto lowAddr = loadImmediate();
-	addressSpace->write(static_cast<uint16_t>(lowAddr + offset), value);
+	return loadImmediate();
 }
 
-void CPU6502::storeIndirectX(uint8_t value)
+uint16_t CPU6502::getZeroPagePlus(uint8_t offset)
+{
+	const auto lowAddr = loadImmediate();
+	return static_cast<uint16_t>(lowAddr + offset);
+}
+
+uint16_t CPU6502::getIndirectX()
 {
 	const uint8_t immediate = loadImmediate();
 	const auto lowAddr = addressSpace->read(uint8_t(immediate + regX));
 	const auto highAddr = addressSpace->read(uint8_t(immediate + regX + 1));
-	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	addressSpace->write(addr, value);
+	return static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
 }
 
-void CPU6502::storeIndirectY(uint8_t value)
-{
-	const auto tablePos = loadImmediate16();
+uint16_t CPU6502::getIndirectY()
+{	const auto tablePos = loadImmediate16();
 	const auto lowAddr = addressSpace->read(tablePos);
 	const auto highAddr = addressSpace->read(tablePos + 1);
 	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
-	addressSpace->write(addr + regY, value);
+	return addr + regY;
+}
+
+uint16_t CPU6502::getAddress(uint8_t mode)
+{
+	switch (mode) {
+	case 0:
+		return getIndirectX();
+	case 1:
+		return getZeroPage();
+	case 2:
+		// Immediate mode, should never get here
+		return 0;
+	case 3:
+		return getAbsolute();
+	case 4:
+		return getIndirectY();
+	case 5:
+		return getZeroPagePlus(regX);
+	case 6:
+		return getAbsolutePlus(regY);
+	default:
+		return getAbsolutePlus(regX);
+	}
+}
+
+uint16_t CPU6502::getAddressX(uint8_t mode)
+{
+	switch (mode) {
+	case 0:
+		return getIndirectX();
+	case 1:
+		return getZeroPage();
+	case 2:
+		// Immediate mode, should never get here
+		return 0;
+	case 3:
+		return getAbsolute();
+	case 4:
+		return getIndirectY();
+	case 5:
+		return getZeroPagePlus(regX);
+	case 6:
+		return getAbsolutePlus(regY);
+	default:
+		return getAbsolutePlus(regY);
+	}
 }
 
 void CPU6502::storeAddressMode(uint8_t value, uint8_t mode)
 {
-	switch (mode) {
-	case 0:
-		storeIndirectX(value);
-		return;
-	case 1:
-		storeZeroPage(value);
-		return;
-	case 2:
-		return;
-	case 3:
-		storeAbsolute(value);
-		return;
-	case 4:
-		storeIndirectY(value);
-		return;
-	case 5:
-		storeZeroPagePlus(value, regX);
-		return;
-	case 6:
-		storeAbsolutePlus(value, regY);
-		return;
-	case 7:
-		storeAbsolutePlus(value, regX);
-	default:
-		return;
-	}
+	addressSpace->write(getAddress(mode), value);
 }
 
 void CPU6502::storeAddressModeX(uint8_t value, uint8_t mode)
 {
-	switch (mode) {
-	case 0:
-		return;
-	case 1:
-		storeZeroPage(value);
-		return;
-	case 2:
-		return;
-	case 3:
-		storeAbsolute(value);
-		return;
-	case 4:
-		storeIndirectY(value);
-		return;
-	case 5:
-		storeZeroPagePlus(value, regY);
-		return;
-	case 6:
-		return;
-	case 7:
-		storeAbsolutePlus(value, regY);
-	default:
-		return;
-	}
-};
+	addressSpace->write(getAddressX(mode), value);
+}
 
 void CPU6502::storeStack(uint8_t value)
 {
@@ -750,7 +680,7 @@ void CPU6502::storeStack(uint8_t value)
 uint8_t CPU6502::loadStack()
 {
 	return addressSpace->read(0x100 + ++regS);
-};
+}
 
 void CPU6502::compare(uint8_t reg, uint8_t memory)
 {
