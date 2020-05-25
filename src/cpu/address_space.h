@@ -45,7 +45,7 @@ public:
 	void map(gsl::span<uint8_t> memory, uint16_t startAddress, uint16_t endAddress);
 	void unmap(uint16_t startAddress, uint16_t endAddress);
 
-	void mapRegister(void* data, RegisterCallback callback, uint16_t startAddress, uint16_t endAddress);
+	void mapRegister(uint16_t startAddress, uint16_t endAddress, void* data, RegisterCallback callback);
 
 	void dump(uint16_t startAddress, uint16_t endAddress);
 

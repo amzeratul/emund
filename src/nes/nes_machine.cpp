@@ -21,6 +21,16 @@ NESMachine::NESMachine()
 
 	ppu = std::make_unique<NESPPU>();
 	ppu->mapRegisters(*addressSpace);
+
+	addressSpace->mapRegister(0x4000, 0x401F, this, [] (void* self, uint16_t address, uint8_t& value, bool write)
+	{
+		const auto machine = static_cast<NESMachine*>(self);
+		if (write) {
+			machine->writeRegister(address, value);
+		} else {
+			value = machine->readRegister(address);
+		}
+	});
 }
 
 NESMachine::~NESMachine() = default;
@@ -68,4 +78,15 @@ void NESMachine::tick(double t)
 			ppu->tick();
 		}
 	}
+}
+
+uint8_t NESMachine::readRegister(uint16_t address)
+{
+	// TODO
+	return 0;
+}
+
+void NESMachine::writeRegister(uint16_t address, uint8_t value)
+{
+	// TODO
 }

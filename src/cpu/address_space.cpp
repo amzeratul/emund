@@ -40,7 +40,7 @@ void AddressSpace8BitBy16Bit::unmap(uint16_t startAddress, uint16_t endAddress)
 	}
 }
 
-void AddressSpace8BitBy16Bit::mapRegister(void* data, RegisterCallback callback, uint16_t startAddress, uint16_t endAddress)
+void AddressSpace8BitBy16Bit::mapRegister(uint16_t startAddress, uint16_t endAddress, void* data, RegisterCallback callback)
 {
 	for (auto& r: registers) {
 		if (!r.callback) {

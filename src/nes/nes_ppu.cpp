@@ -19,7 +19,7 @@ uint32_t NESPPU::getCycle()
 
 void NESPPU::mapRegisters(AddressSpace8BitBy16Bit& addressSpace)
 {
-	addressSpace.mapRegister(this, [] (void* self, uint16_t address, uint8_t& value, bool write)
+	addressSpace.mapRegister(0x2000, 0x3FFF, this, [] (void* self, uint16_t address, uint8_t& value, bool write)
 	{
 		const uint16_t realAddress = 0x2000 | (address & 0x0F);
 		if (write) {
@@ -27,7 +27,7 @@ void NESPPU::mapRegisters(AddressSpace8BitBy16Bit& addressSpace)
 		} else {
 			value = static_cast<NESPPU*>(self)->readRegister(realAddress);
 		}
-	}, 0x2000, 0x3FFF);
+	});
 }
 
 uint8_t NESPPU::readRegister(uint16_t address)

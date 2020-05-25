@@ -16,8 +16,12 @@ public:
 	void loadROM(std::unique_ptr<NESRom> rom);
 	void tick(double t);
 
+	uint8_t readRegister(uint16_t address);
+	void writeRegister(uint16_t address, uint8_t value);
+
 private:
 	bool running = false;
+	
 	std::unique_ptr<NESRom> rom;
 	std::unique_ptr<NESMapper> mapper;
 	std::unique_ptr<CPU6502> cpu;
