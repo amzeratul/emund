@@ -23,8 +23,11 @@ NESMachine::~NESMachine() = default;
 void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 {
 	rom = std::move(romToLoad);
-	NESMapper mapper;
-	mapper.map(*rom, *addressSpace);
+	mapper = std::make_unique<NESMapper>();
+	if (!mapper->map(*rom, *addressSpace)) {
+		Logger::logError("Unknown mapper: " + toString(rom->getMapper()));
+	}
+	cpu->reset();
 }
 
 void NESMachine::tick(double t)

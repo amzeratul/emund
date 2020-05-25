@@ -3,6 +3,7 @@
 #include <vector>
 
 class NESRom;
+class NESMapper;
 class CPU6502;
 class AddressSpace8BitBy16Bit;
 
@@ -16,6 +17,7 @@ public:
 
 private:
 	std::unique_ptr<NESRom> rom;
+	std::unique_ptr<NESMapper> mapper;
 	std::unique_ptr<CPU6502> cpu;
 	std::unique_ptr<AddressSpace8BitBy16Bit> addressSpace;
 	std::vector<uint8_t> ram;

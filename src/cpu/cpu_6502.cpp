@@ -617,8 +617,12 @@ void CPU6502::tick()
 
 void CPU6502::reset()
 {
-	regS -= 3;
-	regP |= 0x04;
+	regS = 0xFD;
+	regP = 0x34;
+	cycle = 0;
+
+	regPC = addressSpace->read(0xFFFC);
+	regPC |= static_cast<uint16_t>(addressSpace->read(0xFFFD)) << 8;
 }
 
 bool CPU6502::hasError() const
