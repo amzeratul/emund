@@ -386,6 +386,35 @@ void CPU6502::tick()
 		// STY
 		storeAddressMode(regY, addressMode);
 		break;
+	case 0xAA:
+		// TAX
+		regX = regA;
+		setZN(regX);
+		break;
+	case 0xA8:
+		// TAY
+		regY = regA;
+		setZN(regY);
+		break;
+	case 0xBA:
+		// TSX
+		regX = regS;
+		setZN(regX);
+		break;
+	case 0x8A:
+		// TXA
+		regA = regX;
+		setZN(regA);
+		break;
+	case 0x9A:
+		// TXS
+		regS = regX;
+		break;
+	case 0x98:
+		// TYA
+		regA = regY;
+		setZN(regA);
+		break;
 	default:
 		error = ErrorType::UnknownInstruction;
 		errorInstruction = instruction;
