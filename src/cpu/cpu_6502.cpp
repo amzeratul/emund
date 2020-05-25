@@ -179,6 +179,27 @@ void CPU6502::tick()
 		// CPY
 		compare(regY, loadAddressMode(addressMode));
 		break;
+	case 0xC6:
+	case 0xCE:
+	case 0xD6:
+	case 0xDE:
+		// DEC
+		{
+			const auto m = loadAddressMode(addressMode) - 1;
+			setZN(m);
+			storeAddressMode(m, addressMode);
+			break;
+		}
+	case 0xCA:
+		// DEX
+		--regX;
+		setZN(regX);
+		break;
+	case 0x88:
+		// DEY
+		--regY;
+		setZN(regY);
+		break;
 	case 0x41:
 	case 0x45:
 	case 0x49:
@@ -190,6 +211,27 @@ void CPU6502::tick()
 		// EOR
 		regA = regA ^ loadAddressMode(addressMode);
 		setZN(regA);
+		break;
+	case 0xE6:
+	case 0xEE:
+	case 0xF6:
+	case 0xFE:
+		// INC
+		{
+			const auto m = loadAddressMode(addressMode) + 1;
+			setZN(m);
+			storeAddressMode(m, addressMode);
+			break;
+		}
+	case 0xE8:
+		// INX
+		++regX;
+		setZN(regX);
+		break;
+	case 0xC8:
+		// INY
+		++regY;
+		setZN(regY);
 		break;
 	case 0x4C:
 		// JMP, immediate
@@ -602,7 +644,7 @@ void CPU6502::subWithCarry(uint8_t value)
 	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_OVERFLOW | FLAG_NEGATIVE))
 		| (((intermediateResult & 0x100) >> 8) ^ FLAG_CARRY) // Set carry flag
 		| (regA == 0 ? FLAG_ZERO : 0) // Set zero flag
-		| (((a ^ regA) & (value ^ regA) & 0x80) != 0 ? FLAG_OVERFLOW : 0) // Set overflow flag. See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
+		| (((a ^ regA) & ((255 - value) ^ regA) & 0x80) != 0 ? FLAG_OVERFLOW : 0) // Set overflow flag. See http://www.righto.com/2012/12/the-6502-overflow-flag-explained.html
 		| (regA & 0x80); // Set negative flag
 }
 
