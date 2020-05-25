@@ -70,6 +70,25 @@ void CPU6502::tick()
 		regA = regA & loadAddressMode(addressMode);
 		setZN(regA);
 		break;
+	case 0x0A:
+		// ASL, accumulator
+		setCarry(regA & 0x80);
+		regA <<= 1;
+		setZN(regA);
+		break;
+	case 0x06:
+	case 0x0E:
+	case 0x16:
+	case 0x1E:
+		// ASL
+		{
+			auto m = loadAddressMode(addressMode);
+			setCarry(m & 0x80);
+			m <<= 1;
+			setZN(m);
+			storeAddressMode(m, addressMode);
+			break;
+		}
 	case 0x90:
 		// BCC
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) == 0) {
@@ -295,6 +314,25 @@ void CPU6502::tick()
 		regY = loadAddressMode(addressMode);
 		setZN(regY);
 		break;
+	case 0x4A:
+		// LSR, accumulator
+		setCarry(regA & 1);
+		regA >>= 1;
+		setZN(regA);
+		break;
+	case 0x46:
+	case 0x4E:
+	case 0x56:
+	case 0x5E:
+		// LSR
+		{
+			auto m = loadAddressMode(addressMode);
+			setCarry(m & 1);
+			m >>= 1;
+			setZN(m);
+			storeAddressMode(m, addressMode);
+			break;
+		}
 	case 0xEA:
 		// NOP
 		break;
@@ -328,6 +366,52 @@ void CPU6502::tick()
 		regP = (loadStack() & ~(FLAG_B0)) | FLAG_B1;
 		// This really should have B0 and B1 disabled I think?
 		break;
+	case 0x2A:
+		// ROL, accumulator
+		{
+			const uint8_t carry = (regP & FLAG_CARRY);
+			setCarry(regA & 0x80);
+			regA = (regA << 1) | carry;
+			setZN(regA);
+			break;
+		}
+	case 0x26:
+	case 0x2E:
+	case 0x36:
+	case 0x3E:
+		// ROL
+		{
+			auto m = loadAddressMode(addressMode);
+			const uint8_t carry = (regP & FLAG_CARRY);
+			setCarry(m & 0x80);
+			m = (m << 1) | carry;
+			setZN(m);
+			storeAddressMode(m, addressMode);
+			break;
+		}
+	case 0x6A:
+		// ROR, accumulator
+		{
+			const uint8_t carry = (regP & FLAG_CARRY);
+			setCarry(regA & 1);
+			regA = (regA >> 1) | (carry << 7);
+			setZN(regA);
+			break;
+		}
+	case 0x66:
+	case 0x6E:
+	case 0x76:
+	case 0x7E:
+		// ROR
+		{
+			auto m = loadAddressMode(addressMode);
+			const uint8_t carry = (regP & FLAG_CARRY);
+			setCarry(m & 1);
+			m = (m >> 1) | (carry << 7);
+			setZN(m);
+			storeAddressMode(m, addressMode);
+			break;
+		}
 	case 0x40:
 		// RTI
 		regP = (loadStack() & ~(FLAG_B0)) | FLAG_B1;
@@ -445,6 +529,11 @@ uint8_t CPU6502::getErrorInstruction() const
 void CPU6502::setZN(uint8_t value)
 {
 	regP = (regP & ~(FLAG_ZERO | FLAG_NEGATIVE)) | (value == 0 ? FLAG_ZERO : 0) | (value & 0x80 ? FLAG_NEGATIVE : 0);
+}
+
+void CPU6502::setCarry(uint8_t value)
+{
+	regP = (regP & ~FLAG_CARRY) | (value ? FLAG_CARRY : 0);
 }
 
 uint8_t CPU6502::loadImmediate()

@@ -41,7 +41,8 @@ private:
 	ErrorType error = ErrorType::OK;
 	uint8_t errorInstruction;
 
-	void setZN(uint8_t value);
+	FORCEINLINE void setZN(uint8_t value);
+	FORCEINLINE void setCarry(uint8_t value);
 
 	FORCEINLINE uint8_t loadImmediate();
 	FORCEINLINE uint16_t loadImmediate16();
