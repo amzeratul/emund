@@ -10,21 +10,23 @@ public:
 	
 	FORCEINLINE uint8_t read(uint16_t address) const
 	{
-		const auto& segment = memory[address >> 8];
-		// TODO: null check?
-		return segment[address & 0xFF];
+		const auto& page = memory[address >> 8];
+		return page[address & 0xFF];
 	}
 	
 	FORCEINLINE void write(uint16_t address, uint8_t value) const
 	{
-		const auto& segment = memory[address >> 8];
-		// TODO: null check?
-		segment[address & 0xFF] = value;
+		const auto& page = memory[address >> 8];
+		page[address & 0xFF] = value;
 	}
 
 	void map(gsl::span<uint8_t> memory, uint16_t startAddress, uint16_t endAddress);
 	void unmap(uint16_t startAddress, uint16_t endAddress);
 
 private:
-	std::array<uint8_t*, 256> memory;
+	constexpr static size_t pageSize = 256;
+	constexpr static size_t numPages = 256;
+	
+	std::array<uint8_t*, numPages> memory;
+	std::array<uint8_t, pageSize> fallbackPage;
 };
