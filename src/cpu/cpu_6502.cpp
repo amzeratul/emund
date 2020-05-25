@@ -43,28 +43,32 @@ void CPU6502::tick()
 	}
 	
 	const auto instruction = loadImmediate();
+	const uint8_t addressMode = (instruction & 0x4) >> 2;
 
 	switch (instruction) {
-	case 0x10:
-		// BPL
-		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_NEGATIVE) == 0) {
+	case 0x61:
+	case 0x65:
+	case 0x69:
+	case 0x6D:
+	case 0x71:
+	case 0x75:
+	case 0x79:
+	case 0x7D:
+		// ADC
+		addWithCarry(loadAddressMode(addressMode));
+		break;
+	case 0x90:
+		// BCC
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) == 0) {
 			regPC += offset;
 		}
 		break;
-	case 0x18:
-		// CLC
-		regP &= ~FLAG_CARRY;
-		break;
-	case 0x20:
-		// JSR
-		{
-			const auto addr = loadImmediate16();
-			--regPC;
-			storeStack(regPC >> 8);
-			storeStack(regPC & 0xFF);
-			regPC = addr;
-			break;
+	case 0xB0:
+		// BCS
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) != 0) {
+			regPC += offset;
 		}
+		break;
 	case 0x24:
 		// BIT, Zero Page
 		bitTest(loadZeroPage());
@@ -73,19 +77,29 @@ void CPU6502::tick()
 		// BIT, Absolute
 		bitTest(loadAbsolute());
 		break;
+	case 0xF0:
+		// BEQ
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_ZERO) != 0) {
+			regPC += offset;
+		}
+		break;
 	case 0x30:
 		// BMI
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_NEGATIVE) != 0) {
 			regPC += offset;
 		}
 		break;
-	case 0x38:
-		// SEC
-		regP |= FLAG_CARRY;
+	case 0xD0:
+		// BNE, Relative
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_ZERO) == 0) {
+			regPC += offset;
+		}
 		break;
-	case 0x4C:
-		// JMP, immediate
-		regPC = loadImmediate16();
+	case 0x10:
+		// BPL
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_NEGATIVE) == 0) {
+			regPC += offset;
+		}
 		break;
 	case 0x50:
 		// BVC
@@ -93,11 +107,42 @@ void CPU6502::tick()
 			regPC += offset;
 		}
 		break;
-	case 0x60:
-		// RTS
-		regPC = loadStack();
-		regPC |= uint16_t(loadStack()) << 8;
-		++regPC;
+	case 0x70:
+		// BVS
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_OVERFLOW) != 0) {
+			regPC += offset;
+		}
+		break;
+	case 0x18:
+		// CLC
+		regP &= ~FLAG_CARRY;
+		break;
+	case 0xD8:
+		// CLD
+		regP &= ~FLAG_DECIMAL;
+		break;
+	case 0x58:
+		// CLI
+		regP &= ~FLAG_INTERRUPT_DISABLE;
+		break;
+	case 0xB8:
+		// CLV
+		regP &= ~FLAG_OVERFLOW;
+		break;
+	case 0xC1:
+	case 0xC5:
+	case 0xC9:
+	case 0xCD:
+	case 0xD1:
+	case 0xD5:
+	case 0xD9:
+	case 0xDD:
+		// CMP
+		compare(loadAddressMode(addressMode));
+		break;
+	case 0x4C:
+		// JMP, immediate
+		regPC = loadImmediate16();
 		break;
 	case 0x6C:
 		{
@@ -109,84 +154,26 @@ void CPU6502::tick()
 			regPC = addr1;
 			break;
 		}
-	case 0x70:
-		// BVS
-		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_OVERFLOW) != 0) {
-			regPC += offset;
+	case 0x20:
+		// JSR
+		{
+			const auto addr = loadImmediate16();
+			--regPC;
+			storeStack(regPC >> 8);
+			storeStack(regPC & 0xFF);
+			regPC = addr;
+			break;
 		}
-		break;
-	case 0x81:
-		// STA, (Indirect, X)
-		storeIndirectX(regA);
-		break;
-	case 0x84:
-		// STY, zero page
-		storeZeroPage(regY);
-		break;
-	case 0x85:
-		// STA, zero page
-		storeZeroPage(regA);
-		break;
-	case 0x86:
-		// STX, zero page
-		storeZeroPage(regX);
-		break;
-	case 0x8C:
-		// STY, absolute
-		storeAbsolute(regY);
-		break;
-	case 0x8D:
-		// STA, absolute
-		storeAbsolute(regA);
-		break;
-	case 0x8E:
-		// STX, absolute
-		storeAbsolute(regX);
-		break;
-	case 0x90:
-		// BCC
-		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) == 0) {
-			regPC += offset;
-		}
-		break;
-	case 0x91:
-		// STA, (Indirect), Y
-		storeIndirectY(regA);
-		break;
-	case 0x94:
-		// STY, zero page + X
-		storeZeroPagePlus(regY, regX);
-		break;
-	case 0x95:
-		// STA, zero page + X
-		storeZeroPagePlus(regA, regX);
-		break;
-	case 0x96:
-		// STX, zero page + Y
-		storeZeroPagePlus(regX, regY);
-		break;
-	case 0x9D:
-		// STA, absolute + X
-		storeAbsolutePlus(regA, regX);
-		break;
-	case 0xA0:
-		// LDY, immediate
-		regY = loadImmediate();
-		setZN(regY);
-		break;
-	case 0xA2:
-		// LDX, immediate
-		regX = loadImmediate();
-		setZN(regX);
-		break;
-	case 0xA4:
-		// LDY, zero page
-		regY = loadZeroPage();
-		setZN(regY);
-		break;
 	case 0xA5:
-		// LDA, zero page
-		regA = loadZeroPage();
+	case 0xA9:
+	case 0xAD:
+	case 0xA1:
+	case 0xB1:
+	case 0xB5:
+	case 0xB9:
+	case 0xBD:
+		// LDA
+		regA = loadAddressMode(addressMode);
 		setZN(regA);
 		break;
 	case 0xA6:
@@ -194,123 +181,105 @@ void CPU6502::tick()
 		regX = loadZeroPage();
 		setZN(regX);
 		break;
-	case 0xA9:
-		// LDA, immediate
-		regA = loadImmediate();
-		setZN(regA);
-		break;
-	case 0xAC:
-		// LDY, absolute
-		regY = loadAbsolute();
-		setZN(regY);
-		break;
-	case 0xAD:
-		// LDA, absolute
-		regA = loadAbsolute();
-		setZN(regA);
+	case 0xA2:
+		// LDX, immediate
+		regX = loadImmediate();
+		setZN(regX);
 		break;
 	case 0xAE:
 		// LDX, absolute
 		regX = loadAbsolute();
 		setZN(regX);
 		break;
-	case 0xA1:
-		// LDA, (Indirect, X)
-		regA = loadIndirectX();
-		setZN(regA);
-		break;
-	case 0xB0:
-		// BCS
-		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) != 0) {
-			regPC += offset;
-		}
-		break;
-	case 0xB1:
-		// LDA, (Indirect), Y
-		regA = loadIndirectY();
-		setZN(regA);
-		break;
-	case 0xB4:
-		// LDY, zero page + X
-		regY = loadZeroPagePlus(regX);
-		setZN(regY);
-		break;
-	case 0xB5:
-		// LDA, zero page + x
-		regA = loadZeroPagePlus(regX);
-		setZN(regA);
-		break;
 	case 0xB6:
 		// LDX, zero page + Y
 		regX = loadZeroPagePlus(regY);
 		setZN(regX);
-		break;
-	case 0xB9:
-		// LDA, absolute + Y
-		regA = loadAbsolutePlus(regY);
-		setZN(regA);
-		break;
-	case 0xBC:
-		// LDY, absolute + X
-		regY = loadAbsolutePlus(regX);
-		setZN(regY);
-		break;
-	case 0xBD:
-		// LDA, absolute + X
-		regA = loadAbsolutePlus(regX);
-		setZN(regA);
 		break;
 	case 0xBE:
 		// LDX, absolute + Y
 		regX = loadAbsolutePlus(regY);
 		setZN(regX);
 		break;
-	case 0xC1:
-		// CMP, (Indirect, X)
-		compare(loadIndirectX());
+	case 0xA0:
+		// LDY, immediate
+		regY = loadImmediate();
+		setZN(regY);
 		break;
-	case 0xC5:
-		// CMP, Zero Page
-		compare(loadZeroPage());
+	case 0xA4:
+		// LDY, zero page
+		regY = loadZeroPage();
+		setZN(regY);
 		break;
-	case 0xC9:
-		// CMP, Immediate
-		compare(loadImmediate());
+	case 0xAC:
+		// LDY, absolute
+		regY = loadAbsolute();
+		setZN(regY);
 		break;
-	case 0xCD:
-		// CMP, Absolute
-		compare(loadAbsolute());
+	case 0xB4:
+		// LDY, zero page + X
+		regY = loadZeroPagePlus(regX);
+		setZN(regY);
 		break;
-	case 0xD0:
-		// BNE, Relative
-		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_ZERO) == 0) {
-			regPC += offset;
-		}
-		break;
-	case 0xD1:
-		// CMP, (Indirect), Y
-		compare(loadIndirectY());
-		break;
-	case 0xD5:
-		// CMP, Zero Page + X
-		compare(loadZeroPagePlus(regX));
-		break;
-	case 0xD9:
-		// CMP, Absolute + Y
-		compare(loadAbsolutePlus(regY));
-		break;
-	case 0xDD:
-		// CMP, Absolute + X
-		compare(loadAbsolutePlus(regX));
+	case 0xBC:
+		// LDY, absolute + X
+		regY = loadAbsolutePlus(regX);
+		setZN(regY);
 		break;
 	case 0xEA:
 		// NOP
 		break;
-	case 0xF0:
-		// BEQ
-		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_ZERO) != 0) {
-			regPC += offset;
-		}
+	case 0x60:
+		// RTS
+		regPC = loadStack();
+		regPC |= uint16_t(loadStack()) << 8;
+		++regPC;
+		break;
+	case 0x38:
+		// SEC
+		regP |= FLAG_CARRY;
+		break;
+	case 0xF8:
+		// SED
+		regP |= FLAG_DECIMAL;
+		break;
+	case 0x78:
+		// SEI
+		regP |= FLAG_INTERRUPT_DISABLE;
+		break;
+	case 0x81:
+	case 0x85:
+	case 0x8D:
+	case 0x91:
+	case 0x95:
+	case 0x99:
+	case 0x9D:
+		// STA
+		storeAddressMode(regA, addressMode);
+		break;
+	case 0x86:
+		// STX, zero page
+		storeZeroPage(regX);
+		break;
+	case 0x8E:
+		// STX, absolute
+		storeAbsolute(regX);
+		break;
+	case 0x96:
+		// STX, zero page + Y
+		storeZeroPagePlus(regX, regY);
+		break;
+	case 0x84:
+		// STY, zero page
+		storeZeroPage(regY);
+		break;
+	case 0x8C:
+		// STY, absolute
+		storeAbsolute(regY);
+		break;
+	case 0x94:
+		// STY, zero page + X
+		storeZeroPagePlus(regY, regX);
 		break;
 	default:
 		error = ErrorType::UnknownInstruction;
@@ -394,6 +363,28 @@ uint8_t CPU6502::loadIndirectY()
 {
 	const auto addr = loadImmediate16();
 	return addressSpace->read(addr + regY);
+}
+
+uint8_t CPU6502::loadAddressMode(uint8_t mode)
+{
+	switch (mode) {
+	case 0:
+		return loadIndirectX();
+	case 1:
+		return loadZeroPage();
+	case 2:
+		return loadImmediate();
+	case 3:
+		return loadAbsolute();
+	case 4:
+		return loadIndirectY();
+	case 5:
+		return loadZeroPagePlus(regX);
+	case 6:
+		return loadAbsolutePlus(regY);
+	default:
+		return loadAbsolutePlus(regX);
+	}
 };
 
 void CPU6502::storeAbsolute(uint8_t value)
@@ -434,6 +425,35 @@ void CPU6502::storeIndirectY(uint8_t value)
 {
 	const auto addr = loadImmediate16();
 	addressSpace->write(addr + regY, value);
+}
+
+void CPU6502::storeAddressMode(uint8_t value, uint8_t mode)
+{
+	switch (mode) {
+	case 0:
+		storeIndirectX(value);
+		return;
+	case 1:
+		storeZeroPage(value);
+		return;
+	case 2:
+		return;
+	case 3:
+		storeAbsolute(value);
+		return;
+	case 4:
+		storeIndirectY(value);
+		return;
+	case 5:
+		storeZeroPagePlus(value, regX);
+		return;
+	case 6:
+		storeAbsolutePlus(value, regY);
+		return;
+	default:
+		storeAbsolutePlus(value, regX);
+		return;
+	}
 };
 
 void CPU6502::storeStack(uint8_t value)
@@ -455,5 +475,18 @@ void CPU6502::compare(uint8_t value)
 void CPU6502::bitTest(uint8_t value)
 {
 	regP = (regP & ~(FLAG_ZERO | FLAG_OVERFLOW | FLAG_NEGATIVE)) | ((regA & value) == 0 ? FLAG_ZERO : 0) | (value & (FLAG_OVERFLOW | FLAG_NEGATIVE));
+}
+
+void CPU6502::addWithCarry(uint8_t value)
+{
+	const int16_t result = static_cast<int16_t>(regA) + static_cast<int16_t>(value) + static_cast<int16_t>(regP & FLAG_CARRY);
+	
+	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_OVERFLOW | FLAG_NEGATIVE))
+		| ((result & 0x100) >> 8) // Set carry flag
+		| (result == 0 ? FLAG_ZERO : 0) // Set zero flag
+		| (result > 127 || result < -128 ? FLAG_OVERFLOW : 0) // Set overflow flag
+		| (result < 0 ? FLAG_NEGATIVE : 0); // Set negative flag
+	
+	regA = static_cast<uint8_t>(result); // Narrow result
 }
 

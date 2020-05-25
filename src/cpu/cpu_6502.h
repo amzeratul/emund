@@ -50,6 +50,7 @@ private:
 	FORCEINLINE uint8_t loadZeroPagePlus(uint8_t offset);
 	FORCEINLINE uint8_t loadIndirectX();
 	FORCEINLINE uint8_t loadIndirectY();
+	FORCEINLINE uint8_t loadAddressMode(uint8_t mode);
 
 	FORCEINLINE void storeAbsolute(uint8_t value);
 	FORCEINLINE void storeAbsolutePlus(uint8_t value, uint8_t offset);
@@ -57,10 +58,12 @@ private:
 	FORCEINLINE void storeZeroPagePlus(uint8_t value, uint8_t offset);
 	FORCEINLINE void storeIndirectX(uint8_t value);
 	FORCEINLINE void storeIndirectY(uint8_t value);
+	FORCEINLINE void storeAddressMode(uint8_t value, uint8_t mode);
 
 	FORCEINLINE void storeStack(uint8_t value);
 	FORCEINLINE uint8_t loadStack();
 	
 	FORCEINLINE void compare(uint8_t value);
 	FORCEINLINE void bitTest(uint8_t value);
+	FORCEINLINE void addWithCarry(uint8_t value);
 };
