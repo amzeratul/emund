@@ -205,9 +205,10 @@ void CPU6502::tick()
 	case 0xDE:
 		// DEC
 		{
-			const auto m = loadAddressMode(addressMode) - 1;
+			const auto address = getAddress(addressMode);
+			const auto m = addressSpace->read(address) - 1;
 			setZN(m);
-			storeAddressMode(m, addressMode);
+			addressSpace->write(address, m);
 			break;
 		}
 	case 0xCA:
@@ -238,9 +239,10 @@ void CPU6502::tick()
 	case 0xFE:
 		// INC
 		{
-			const auto m = loadAddressMode(addressMode) + 1;
+			const auto address = getAddress(addressMode);
+			const auto m = addressSpace->read(address) + 1;
 			setZN(m);
-			storeAddressMode(m, addressMode);
+			addressSpace->write(address, m);
 			break;
 		}
 	case 0xE8:
@@ -616,9 +618,9 @@ uint16_t CPU6502::getIndirectX()
 }
 
 uint16_t CPU6502::getIndirectY()
-{	const auto tablePos = loadImmediate16();
-	const auto lowAddr = addressSpace->read(tablePos);
-	const auto highAddr = addressSpace->read(tablePos + 1);
+{	const auto tablePos = loadImmediate();
+	const auto lowAddr = addressSpace->read(uint8_t(tablePos));
+	const auto highAddr = addressSpace->read(uint8_t(tablePos + 1));
 	const auto addr = static_cast<uint16_t>(lowAddr) | (static_cast<uint16_t>(highAddr) << 8);
 	return addr + regY;
 }
