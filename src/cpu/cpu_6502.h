@@ -11,7 +11,8 @@ class CPU6502 {
 public:
 	enum class ErrorType {
 		OK,
-		UnknownInstruction
+		UnknownInstruction,
+		Break
 	};
 	
 	CPU6502();
@@ -33,7 +34,7 @@ private:
 	uint8_t regY = 0;
 	uint16_t regPC = 0xC000;
 	uint8_t regS = 0xFD;
-	uint8_t regP = 0x24; // Should be 0x34?
+	uint8_t regP = 0x24; // Should this be 0x34?
 
 	std::unique_ptr<CPU6502Disassembler> disassembler;
 

@@ -9,7 +9,8 @@ constexpr uint8_t FLAG_CARRY = 0x01;
 constexpr uint8_t FLAG_ZERO = 0x02;
 constexpr uint8_t FLAG_INTERRUPT_DISABLE = 0x04;
 constexpr uint8_t FLAG_DECIMAL = 0x8;
-constexpr uint8_t FLAG_B = 0x30;
+constexpr uint8_t FLAG_B0 = 0x10;
+constexpr uint8_t FLAG_B1 = 0x20;
 constexpr uint8_t FLAG_OVERFLOW = 0x40;
 constexpr uint8_t FLAG_NEGATIVE = 0x80;
 constexpr uint8_t FLAG_ALL = 0xFF;
@@ -112,6 +113,14 @@ void CPU6502::tick()
 		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_NEGATIVE) == 0) {
 			regPC += offset;
 		}
+		break;
+	case 0x00:
+		// BRK
+		storeStack(regPC >> 8);
+		storeStack(regPC & 0xFF);
+		storeStack(regP | FLAG_B0 | FLAG_B1);
+		regP |= FLAG_INTERRUPT_DISABLE;
+		error = ErrorType::Break;
 		break;
 	case 0x50:
 		// BVC
@@ -267,7 +276,7 @@ void CPU6502::tick()
 		break;
 	case 0x08:
 		// PHP
-		storeStack(regP);
+		storeStack(regP | FLAG_B0 | FLAG_B1);
 		break;
 	case 0x48:
 		// PHA
@@ -280,7 +289,15 @@ void CPU6502::tick()
 		break;
 	case 0x28:
 		// PLP
-		regP = loadStack();
+		regP = (loadStack() & ~(FLAG_B0)) | FLAG_B1;
+		// This really should have B0 and B1 disabled I think?
+		break;
+	case 0x40:
+		// RTI
+		regP = (loadStack() & ~(FLAG_B0)) | FLAG_B1;
+		// This really should have B0 and B1 disabled I think?
+		regPC = loadStack();
+		regPC |= uint16_t(loadStack()) << 8;
 		break;
 	case 0x60:
 		// RTS
@@ -522,7 +539,10 @@ uint8_t CPU6502::loadStack()
 void CPU6502::compare(uint8_t value)
 {
 	const auto temp = value - regA;
-	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_NEGATIVE)) | (regA >= value ? FLAG_CARRY : 0) | (regA == value ? FLAG_CARRY : 0) | ((temp & 0x80) != 0 ? FLAG_NEGATIVE : 0);
+	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_NEGATIVE))
+		| (regA >= value ? FLAG_CARRY : 0)
+		| (regA == value ? FLAG_ZERO : 0)
+		| ((temp & 0x80) != 0 ? FLAG_NEGATIVE : 0);
 }
 
 void CPU6502::bitTest(uint8_t value)
