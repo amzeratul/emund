@@ -1,5 +1,8 @@
 #pragma once
 #include <cstdint>
+#include <memory>
+
+#include "cpu_6502_disassembler.h"
 #include "../utils/macros.h"
 
 class AddressSpace8BitBy16Bit;
@@ -31,6 +34,8 @@ private:
 	uint16_t regPC = 0xC000;
 	uint8_t regS = 0xFD;
 	uint8_t regP = 0x34;
+
+	std::unique_ptr<CPU6502Disassembler> disassembler;
 
 	ErrorType error = ErrorType::OK;
 	uint8_t errorInstruction;

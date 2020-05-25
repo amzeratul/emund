@@ -16,6 +16,7 @@ set (SOURCES
 	
 	"src/cpu/address_space.cpp"
 	"src/cpu/cpu_6502.cpp"
+	"src/cpu/cpu_6502_disassembler.cpp"
 	
 	"src/game/emund_game.cpp"
 	"src/game/game_stage.cpp"
@@ -30,6 +31,7 @@ set (HEADERS
 	
 	"src/cpu/address_space.h"
 	"src/cpu/cpu_6502.h"
+	"src/cpu/cpu_6502_disassembler.h"
 	
 	"src/game/emund_game.h"
 	"src/game/game_stage.h"

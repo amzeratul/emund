@@ -2,6 +2,9 @@
 
 #include "address_space.h"
 
+#include <halley.hpp>
+using namespace Halley;
+
 constexpr uint8_t FLAG_CARRY = 0x01;
 constexpr uint8_t FLAG_ZERO = 0x02;
 constexpr uint8_t FLAG_INTERRUPT_DISABLE = 0x04;
@@ -11,8 +14,13 @@ constexpr uint8_t FLAG_OVERFLOW = 0x40;
 constexpr uint8_t FLAG_NEGATIVE = 0x80;
 constexpr uint8_t FLAG_ALL = 0xFF;
 
+#ifdef _MSC_VER
+#pragma warning(disable: 4996)
+#endif
+
 CPU6502::CPU6502()
 {
+	disassembler = std::make_unique<CPU6502Disassembler>();
 }
 
 void CPU6502::setAddressSpace(AddressSpace8BitBy16Bit& addressSpace)
@@ -22,8 +30,9 @@ void CPU6502::setAddressSpace(AddressSpace8BitBy16Bit& addressSpace)
 
 void CPU6502::tick()
 {
+	const auto prevPC = regPC;
 	const auto instruction = loadImmediate();
-	
+
 	switch (instruction) {
 	case 0x18:
 		// CLC
@@ -102,39 +111,81 @@ void CPU6502::tick()
 		regY = loadZeroPage();
 		setZN(regY);
 		break;
+	case 0xA5:
+		// LDA, zero page
+		regA = loadZeroPage();
+		setZN(regA);
+		break;
 	case 0xA6:
 		// LDX, zero page
 		regX = loadZeroPage();
 		setZN(regX);
+		break;
+	case 0xA9:
+		// LDA, immediate
+		regA = loadImmediate();
+		setZN(regA);
 		break;
 	case 0xAC:
 		// LDY, absolute
 		regY = loadAbsolute();
 		setZN(regY);
 		break;
+	case 0xAD:
+		// LDA, absolute
+		regA = loadAbsolute();
+		setZN(regA);
+		break;
 	case 0xAE:
 		// LDX, absolute
 		regX = loadAbsolute();
 		setZN(regX);
+		break;
+	case 0xA1:
+		// LDA, (Indirect, X)
+		regA = loadIndirectX();
+		setZN(regA);
+		break;
+	case 0xB0:
+		// BCS
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_CARRY) != 0) {
+			regPC += offset;
+		}
+		break;
+	case 0xB1:
+		// LDA, (Indirect), Y
+		regA = loadIndirectY();
+		setZN(regA);
 		break;
 	case 0xB4:
 		// LDY, zero page + X
 		regY = loadZeroPagePlus(regX);
 		setZN(regY);
 		break;
-	case 0xB0:
-		// BCS
-		regPC += static_cast<int8_t>(loadImmediate());
+	case 0xB5:
+		// LDA, zero page + x
+		regA = loadZeroPagePlus(regX);
+		setZN(regA);
 		break;
 	case 0xB6:
 		// LDX, zero page + Y
 		regX = loadZeroPagePlus(regY);
 		setZN(regX);
 		break;
+	case 0xB9:
+		// LDA, absolute + Y
+		regA = loadAbsolutePlus(regY);
+		setZN(regA);
+		break;
 	case 0xBC:
 		// LDY, absolute + X
 		regY = loadAbsolutePlus(regX);
 		setZN(regY);
+		break;
+	case 0xBD:
+		// LDA, absolute + X
+		regA = loadAbsolutePlus(regX);
+		setZN(regA);
 		break;
 	case 0xBE:
 		// LDX, absolute + Y
@@ -176,9 +227,24 @@ void CPU6502::tick()
 	case 0xEA:
 		// NOP
 		break;
+	case 0xF0:
+		// BEQ
+		if (const auto offset = static_cast<int8_t>(loadImmediate()); (regP & FLAG_ZERO) != 0) {
+			regPC += offset;
+		}
+		break;
 	default:
 		error = ErrorType::UnknownInstruction;
 		errorInstruction = instruction;
+	}
+
+	constexpr bool logging = true;
+	if (logging) {
+		char buffer[128];
+		std::snprintf(buffer, 128, "%04hX  ", prevPC);
+		
+		size_t n = disassembler->disassemble(addressSpace->read(prevPC), addressSpace->read(prevPC + 1), addressSpace->read(prevPC + 2), gsl::span(buffer).subspan(6));
+		Logger::logInfo(String(buffer));
 	}
 }
 
@@ -245,7 +311,7 @@ uint8_t CPU6502::loadZeroPage()
 uint8_t CPU6502::loadZeroPagePlus(uint8_t offset)
 {
 	const auto lowAddr = loadImmediate();
-	return addressSpace->read(static_cast<uint16_t>(lowAddr) + offset);
+	return addressSpace->read(static_cast<uint16_t>(lowAddr + offset));
 };
 
 uint8_t CPU6502::loadIndirectX()
@@ -277,7 +343,7 @@ void CPU6502::storeZeroPage(uint8_t value)
 void CPU6502::storeZeroPagePlus(uint8_t value, uint8_t offset)
 {
 	const auto lowAddr = loadImmediate();
-	addressSpace->write(static_cast<uint16_t>(lowAddr) + offset, value);
+	addressSpace->write(static_cast<uint16_t>(lowAddr + offset), value);
 };
 
 void CPU6502::storeStack(uint8_t value)
@@ -289,4 +355,5 @@ void CPU6502::compare(uint8_t value)
 {
 	const auto temp = value - regA;
 	regP = (regP & ~(FLAG_CARRY | FLAG_ZERO | FLAG_NEGATIVE)) | (regA >= value ? FLAG_CARRY : 0) | (regA == value ? FLAG_CARRY : 0) | ((temp & 0x80) != 0 ? FLAG_NEGATIVE : 0);
-};
+}
+
