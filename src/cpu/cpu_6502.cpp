@@ -437,6 +437,7 @@ void CPU6502::tick()
 	case 0xE1:
 	case 0xE5:
 	case 0xE9:
+	case 0xEB: // Unofficial
 	case 0xED:
 	case 0xF1:
 	case 0xF5:

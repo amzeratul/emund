@@ -198,6 +198,8 @@ CPU6502Disassembler::CPU6502Disassembler()
 	addEntry(0x97, "SAX", "$44,X"   , "Zero Page,Y", 2, "4", true);
 	addEntry(0x8F, "SAX", "$4400"   , "Absolute"   , 3, "4", true);
 	addEntry(0x83, "SAX", "($44,X)" , "Indirect,X" , 2, "6", true);
+
+	addEntry(0xEB, "SBC", "#$44"    , "Immediate"  , 2, "2", true);
 }
 
 size_t CPU6502Disassembler::disassemble(uint8_t opCode, uint8_t arg0, uint8_t arg1, gsl::span<char> dst) const
