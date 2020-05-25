@@ -43,7 +43,7 @@ void CPU6502::tick()
 	}
 	
 	const auto instruction = loadImmediate();
-	const uint8_t addressMode = (instruction & 0x4) >> 2;
+	const uint8_t addressMode = (instruction & 0x1C) >> 2;
 
 	switch (instruction) {
 	case 0x61:
