@@ -26,6 +26,7 @@ public:
 	bool hasError() const;
 	ErrorType getError() const;
 	uint8_t getErrorInstruction() const;
+	uint32_t getCycle() const;
 
 private:
 	AddressSpace8BitBy16Bit* addressSpace = nullptr;

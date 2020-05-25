@@ -24,6 +24,7 @@ set (SOURCES
 	"src/nes/nes_mapper.cpp"
 	"src/nes/nes_machine.cpp"
 	"src/nes/nes_rom.cpp"
+	"src/nes/nes_ppu.cpp"
 	)
 
 set (HEADERS
@@ -39,6 +40,7 @@ set (HEADERS
 	"src/nes/nes_mapper.h"
 	"src/nes/nes_machine.h"
 	"src/nes/nes_rom.h"
+	"src/nes/nes_ppu.h"
 
 	"src/utils/macros.h"
 	)

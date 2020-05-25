@@ -640,6 +640,11 @@ uint8_t CPU6502::getErrorInstruction() const
 	return errorInstruction;
 }
 
+uint32_t CPU6502::getCycle() const
+{
+	return cycle;
+}
+
 void CPU6502::setZN(uint8_t value)
 {
 	regP = (regP & ~(FLAG_ZERO | FLAG_NEGATIVE)) | (value == 0 ? FLAG_ZERO : 0) | (value & 0x80 ? FLAG_NEGATIVE : 0);

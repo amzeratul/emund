@@ -5,6 +5,7 @@
 class NESRom;
 class NESMapper;
 class CPU6502;
+class NESPPU;
 class AddressSpace8BitBy16Bit;
 
 class NESMachine {
@@ -16,9 +17,11 @@ public:
 	void tick(double t);
 
 private:
+	bool running = false;
 	std::unique_ptr<NESRom> rom;
 	std::unique_ptr<NESMapper> mapper;
 	std::unique_ptr<CPU6502> cpu;
+	std::unique_ptr<NESPPU> ppu;
 	std::unique_ptr<AddressSpace8BitBy16Bit> addressSpace;
 	std::vector<uint8_t> ram;
 };

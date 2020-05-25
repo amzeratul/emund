@@ -1,10 +1,12 @@
 #include "nes_machine.h"
+#include "nes_ppu.h"
 #include "src/cpu/cpu_6502.h"
 #include "src/cpu/address_space.h"
 #include "src/nes/nes_mapper.h"
 #include "src/nes/nes_rom.h"
 
 #include <halley.hpp>
+
 using namespace Halley;
 
 NESMachine::NESMachine()
@@ -16,6 +18,9 @@ NESMachine::NESMachine()
 
 	cpu = std::make_unique<CPU6502>();
 	cpu->setAddressSpace(*addressSpace);
+
+	ppu = std::make_unique<NESPPU>();
+	ppu->mapRegisters(*addressSpace);
 }
 
 NESMachine::~NESMachine() = default;
@@ -28,15 +33,22 @@ void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 		Logger::logError("Unknown mapper: " + toString(rom->getMapper()));
 	}
 	cpu->reset();
+	running = true;
 }
 
 void NESMachine::tick(double t)
 {
-	while (!cpu->hasError()) {
+	if (!running) {
+		return;
+	}
+	
+	while (running) {
 		cpu->printDebugInfo();
 		cpu->tick();
 
 		if (cpu->hasError()) {			
+			running = false;
+
 			switch (cpu->getError()) {
 			case CPU6502::ErrorType::OK:
 				break;
@@ -48,6 +60,12 @@ void NESMachine::tick(double t)
 			}
 
 			addressSpace->dump(0x0000, 0x1FFF);
+			return;
+		}
+
+		const auto targetPPUCycle = cpu->getCycle() * 3;
+		while (ppu->getCycle() < targetPPUCycle) {
+			ppu->tick();
 		}
 	}
 }

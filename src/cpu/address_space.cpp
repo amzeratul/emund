@@ -40,6 +40,24 @@ void AddressSpace8BitBy16Bit::unmap(uint16_t startAddress, uint16_t endAddress)
 	}
 }
 
+void AddressSpace8BitBy16Bit::mapRegister(void* data, RegisterCallback callback, uint16_t startAddress, uint16_t endAddress)
+{
+	for (auto& r: registers) {
+		if (!r.callback) {
+			r.data = data;
+			r.callback = callback;
+			r.startAddress = startAddress;
+			r.endAddress = endAddress;
+
+			registersStartAddress = std::min(registersStartAddress, startAddress);
+			registersEndAddress = std::max(registersEndAddress, endAddress);
+			return;
+		}
+	}
+
+	// All slots allocated
+}
+
 void AddressSpace8BitBy16Bit::dump(uint16_t startAddress, uint16_t endAddress)
 {
 	Expects(startAddress % 16 == 0);
