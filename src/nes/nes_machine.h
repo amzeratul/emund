@@ -29,8 +29,11 @@ private:
 	std::unique_ptr<NESMapper> mapper;
 	std::unique_ptr<CPU6502> cpu;
 	std::unique_ptr<NESPPU> ppu;
-	std::unique_ptr<AddressSpace8BitBy16Bit> addressSpace;
+	std::unique_ptr<AddressSpace8BitBy16Bit> cpuAddressSpace;
+	std::unique_ptr<AddressSpace8BitBy16Bit> ppuAddressSpace;
 	std::vector<uint8_t> ram;
+	std::vector<uint8_t> vram;
+	std::vector<uint8_t> paletteRam;
 
 	std::vector<uint8_t> frameBuffer;
 

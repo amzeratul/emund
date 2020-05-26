@@ -16,7 +16,8 @@ public:
 	uint32_t getX() const;
 	uint32_t getY() const;
 
-	void mapRegisters(AddressSpace8BitBy16Bit& addressSpace);
+	void setAddressSpace(AddressSpace8BitBy16Bit& addressSpace);
+	void mapRegistersOnCPUAddressSpace(AddressSpace8BitBy16Bit& addressSpace);
 
 	uint8_t readRegister(uint16_t address);
 	void writeRegister(uint16_t address, uint8_t value);
@@ -28,6 +29,8 @@ private:
 	uint32_t curX = 0;
 	uint32_t curY = 0;
 	uint32_t frameN = 0;
+
+	AddressSpace8BitBy16Bit* addressSpace = nullptr;
 
 	union PPUStatus {
 		struct {

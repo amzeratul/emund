@@ -13,19 +13,25 @@ NESMachine::NESMachine()
 {
 	frameBuffer.resize(361 * 261);
 	
-	addressSpace = std::make_unique<AddressSpace8BitBy16Bit>();
-
+	cpuAddressSpace = std::make_unique<AddressSpace8BitBy16Bit>();
 	ram.resize(2 * 1024, 0);
-	addressSpace->map(ram, 0x0000, 0x1FFF);
+	cpuAddressSpace->map(ram, 0x0000, 0x1FFF);
+
+	ppuAddressSpace = std::make_unique<AddressSpace8BitBy16Bit>();
+	vram.resize(2 * 1024, 0);
+	paletteRam.resize(256, 0); // THIS IS WRONG, there should only be 32 and they should mirror
+	ppuAddressSpace->map(gsl::span<uint8_t>(vram).subspan(0, 1024), 0x2000, 0x3EFF);
+	ppuAddressSpace->map(paletteRam, 0x3F00, 0x3FFF);
 
 	cpu = std::make_unique<CPU6502>();
-	cpu->setAddressSpace(*addressSpace);
+	cpu->setAddressSpace(*cpuAddressSpace);
 
 	ppu = std::make_unique<NESPPU>();
-	ppu->mapRegisters(*addressSpace);
+	ppu->mapRegistersOnCPUAddressSpace(*cpuAddressSpace);
+	ppu->setAddressSpace(*ppuAddressSpace);
 	ppu->setFrameBuffer(frameBuffer);
 
-	addressSpace->mapRegister(0x4000, 0x401F, this, [] (void* self, uint16_t address, uint8_t& value, bool write)
+	cpuAddressSpace->mapRegister(0x4000, 0x401F, this, [] (void* self, uint16_t address, uint8_t& value, bool write)
 	{
 		const auto machine = static_cast<NESMachine*>(self);
 		if (write) {
@@ -42,7 +48,7 @@ void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 {
 	rom = std::move(romToLoad);
 	mapper = std::make_unique<NESMapper>();
-	if (!mapper->map(*rom, *addressSpace)) {
+	if (!mapper->map(*rom, *cpuAddressSpace, *ppuAddressSpace)) {
 		Logger::logError("Unknown mapper: " + toString(rom->getMapper()));
 	}
 	cpu->reset();
@@ -108,5 +114,5 @@ void NESMachine::reportCPUError()
 		Logger::logError("Unknown instruction: $" + toString(static_cast<int>(cpu->getErrorInstruction()), 16, 2).asciiUpper());
 	}
 
-	addressSpace->dump(0x0000, 0x1FFF);
+	cpuAddressSpace->dump(0x0000, 0x1FFF);
 }

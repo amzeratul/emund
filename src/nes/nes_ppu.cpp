@@ -51,12 +51,17 @@ uint32_t NESPPU::getY() const
 	return curY;
 }
 
+void NESPPU::setAddressSpace(AddressSpace8BitBy16Bit& addressSpace)
+{
+	this->addressSpace = &addressSpace;
+}
+
 uint32_t NESPPU::getCycle() const
 {
 	return cycle;
 }
 
-void NESPPU::mapRegisters(AddressSpace8BitBy16Bit& addressSpace)
+void NESPPU::mapRegistersOnCPUAddressSpace(AddressSpace8BitBy16Bit& addressSpace)
 {
 	addressSpace.mapRegister(0x2000, 0x3FFF, this, [] (void* self, uint16_t address, uint8_t& value, bool write)
 	{
@@ -77,6 +82,12 @@ uint8_t NESPPU::readRegister(uint16_t address)
 			const uint8_t value = ppuStatus.value;
 			ppuStatus.vBlank = false;
 			ppuScrollIdx = 0; // Should I do this here?
+			return value;
+		}
+	case 0x2007:
+		{
+			const uint8_t value = addressSpace->read(ppuAddr);
+			ppuAddr += ppuCtrl.vramAddressIncrement == PPUCTRL::AddressIncrement::Horizontal ? 1 : 32;
 			return value;
 		}
 	default:
@@ -107,6 +118,8 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		ppuAddrIdx = 1 - ppuAddrIdx;
 		break;
 	case 0x2007:
+		addressSpace->write(ppuAddr, value);
+		ppuAddr += ppuCtrl.vramAddressIncrement == PPUCTRL::AddressIncrement::Horizontal ? 1 : 32;
 		break;
 	default:
 		throw std::exception();

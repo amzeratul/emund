@@ -2,11 +2,11 @@
 #include "nes_rom.h"
 #include "src/cpu/address_space.h"
 
-bool NESMapper::map(NESRom& rom, AddressSpace8BitBy16Bit& addressSpace)
+bool NESMapper::map(NESRom& rom, AddressSpace8BitBy16Bit& cpuAddressSpace, AddressSpace8BitBy16Bit& ppuAddressSpace)
 {
 	switch (rom.getMapper()) {
 	case 0:
-		mapper0(rom, addressSpace);
+		mapper0(rom, cpuAddressSpace, ppuAddressSpace);
 		return true;
 
 	default:
@@ -14,8 +14,8 @@ bool NESMapper::map(NESRom& rom, AddressSpace8BitBy16Bit& addressSpace)
 	}
 }
 
-void NESMapper::mapper0(NESRom& rom, AddressSpace8BitBy16Bit& addressSpace)
+void NESMapper::mapper0(NESRom& rom, AddressSpace8BitBy16Bit& cpuAddressSpace, AddressSpace8BitBy16Bit& ppuAddressSpace)
 {
-	const auto prgRom = rom.getPRGROM();
-	addressSpace.map(prgRom, 0x8000, 0xFFFF);
+	cpuAddressSpace.map(rom.getPRGROM(), 0x8000, 0xFFFF);
+	ppuAddressSpace.map(rom.getCHRROM(), 0x0000, 0x1FFF);	
 }

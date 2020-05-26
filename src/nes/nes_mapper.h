@@ -5,8 +5,8 @@ class NESRom;
 
 class NESMapper {
 public:
-	bool map(NESRom& rom, AddressSpace8BitBy16Bit& addressSpace);
+	bool map(NESRom& rom, AddressSpace8BitBy16Bit& cpuAddressSpace, AddressSpace8BitBy16Bit& ppuAddressSpace);
 
 private:
-	void mapper0(NESRom& rom, AddressSpace8BitBy16Bit& addressSpace);
+	void mapper0(NESRom& rom, AddressSpace8BitBy16Bit& cpuAddressSpace, AddressSpace8BitBy16Bit& ppuAddressSpace);
 };
