@@ -18,4 +18,10 @@ public:
 
 private:
 	std::unique_ptr<NESMachine> nes;
+
+	Sprite screen;
+	std::shared_ptr<Texture> texture;
+
+	void generateFrame(gsl::span<const uint8_t> frameBuffer);
+	void setupScreen();
 };

@@ -1,6 +1,7 @@
 #pragma once
 #include <memory>
 #include <vector>
+#include <gsl/span>
 
 class NESRom;
 class NESMapper;
@@ -19,6 +20,8 @@ public:
 	uint8_t readRegister(uint16_t address);
 	void writeRegister(uint16_t address, uint8_t value);
 
+	gsl::span<const uint8_t> getFrameBuffer() const;
+
 private:
 	bool running = false;
 	
@@ -28,5 +31,9 @@ private:
 	std::unique_ptr<NESPPU> ppu;
 	std::unique_ptr<AddressSpace8BitBy16Bit> addressSpace;
 	std::vector<uint8_t> ram;
+
+	std::vector<uint8_t> frameBuffer;
+
+	void reportCPUError();
 };
 

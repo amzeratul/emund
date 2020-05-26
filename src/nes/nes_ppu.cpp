@@ -8,12 +8,47 @@ NESPPU::NESPPU()
 	ppuStatus.vBlank = true;
 }
 
-void NESPPU::tick()
+bool NESPPU::tick()
 {
+	generatePixel();
+	
 	++cycle;
+	++curX;
+
+	// Last scanline on odd fields is shorter
+	// http://wiki.nesdev.com/w/index.php/PPU_frame_timing
+	const uint32_t scanLen = curY == 262 && frameN % 2 == 1 ? 340 : 341;
+	
+	if (curX == scanLen) {
+		curX = 0;
+		++curY;
+
+		if (curY == 20) {
+			ppuStatus.vBlank = false;
+		}
+		
+		if (curY == 262) {
+			frameN++;
+			curY = 0;
+			ppuStatus.vBlank = true;
+			return true;
+		}
+	}
+
+	return false;
 }
 
-uint32_t NESPPU::getCycle()
+uint32_t NESPPU::getX() const
+{
+	return curX;
+}
+
+uint32_t NESPPU::getY() const
+{
+	return curY;
+}
+
+uint32_t NESPPU::getCycle() const
 {
 	return cycle;
 }
@@ -49,7 +84,13 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 	// TODO
 }
 
-void NESPPU::startVBlank()
+void NESPPU::setFrameBuffer(gsl::span<uint8_t> fb)
 {
-	ppuStatus.vBlank = true;
+	frameBuffer = fb;
+}
+
+void NESPPU::generatePixel()
+{
+	// TODO
+	frameBuffer[curX + curY * 341] = frameN & 0xFF;
 }
