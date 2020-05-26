@@ -39,6 +39,59 @@ private:
 		uint8_t value;
 	} ppuStatus;
 
+	union PPUCTRL {
+		enum class MasterSlave {
+			ReadFromExt,
+			OutputColourOnExt
+		};
+
+		enum class SpriteSize {
+			Size8x8,
+			Size8x16
+		};
+
+		enum class AddressIncrement {
+			Horizontal,
+			Vertical
+		};
+
+		enum class DrawPatternAddress {
+			Pattern0000,
+			Pattern1000
+		};
+
+		struct {
+			uint8_t nametableAddress : 2;
+			AddressIncrement vramAddressIncrement : 1;
+			DrawPatternAddress spritePattern : 1;
+			DrawPatternAddress backgroundPattern : 1;
+			SpriteSize spriteSize : 1;
+			MasterSlave ppuMasterSlave : 1;
+			bool generateNMI : 1;
+		};
+		uint8_t value;
+	} ppuCtrl;
+
+	union PPUMask {
+		struct {
+			bool greyscale : 1;
+			bool showLeftBackground : 1;
+			bool showLeftSprites : 1;
+			bool showBackground : 1;
+			bool showSprites : 1;
+			bool emphasizeRed : 1;
+			bool emphasizeGreen : 1;
+			bool emphasizeBlue : 1;
+		};
+		uint8_t value;
+	} ppuMask;
+
+	uint8_t ppuScroll[2];
+	uint8_t ppuScrollIdx = 0;
+
+	uint16_t ppuAddr;
+	uint8_t ppuAddrIdx = 0;
+
 	gsl::span<uint8_t> frameBuffer;
 
 	void generatePixel();

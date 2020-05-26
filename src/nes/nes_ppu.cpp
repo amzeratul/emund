@@ -26,11 +26,14 @@ bool NESPPU::tick()
 		if (curY == 20) {
 			ppuStatus.vBlank = false;
 		}
+
+		if (curY == 240) {
+			ppuStatus.vBlank = true;
+		}
 		
 		if (curY == 262) {
 			frameN++;
 			curY = 0;
-			ppuStatus.vBlank = true;
 			return true;
 		}
 	}
@@ -73,15 +76,41 @@ uint8_t NESPPU::readRegister(uint16_t address)
 		{
 			const uint8_t value = ppuStatus.value;
 			ppuStatus.vBlank = false;
+			ppuScrollIdx = 0; // Should I do this here?
 			return value;
 		}
+	default:
+		throw std::exception();
 	}
 	return 0;
 }
 
 void NESPPU::writeRegister(uint16_t address, uint8_t value)
 {
-	// TODO
+	switch (address) {
+	case 0x2000:
+		ppuCtrl.value = value;
+		break;
+	case 0x2001:
+		ppuMask.value = value;
+		break;
+	case 0x2005:
+		ppuScroll[ppuScrollIdx] = value;
+		ppuScrollIdx = 1 - ppuScrollIdx;
+		break;
+	case 0x2006:
+		if (ppuAddrIdx == 0) {
+			ppuAddr = (ppuAddr & 0x00FF) | ((static_cast<uint16_t>(value) << 8) & 0x3F00);
+		} else {
+			ppuAddr = (ppuAddr & 0xFF00) | value;
+		}
+		ppuAddrIdx = 1 - ppuAddrIdx;
+		break;
+	case 0x2007:
+		break;
+	default:
+		throw std::exception();
+	}
 }
 
 void NESPPU::setFrameBuffer(gsl::span<uint8_t> fb)
