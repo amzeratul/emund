@@ -165,6 +165,11 @@ void NESPPU::setFrameBuffer(gsl::span<uint8_t> fb)
 	frameBuffer = fb;
 }
 
+gsl::span<uint8_t> NESPPU::getOAMData()
+{
+	return oamData;
+}
+
 void NESPPU::generatePixel()
 {
 	// TODO

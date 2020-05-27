@@ -30,6 +30,8 @@ public:
 	uint8_t getErrorInstruction() const;
 	uint32_t getCycle() const;
 
+	void copyOAM(uint8_t highAddr, gsl::span<uint8_t> oamData);
+
 private:
 	AddressSpace8BitBy16Bit* addressSpace = nullptr;
 

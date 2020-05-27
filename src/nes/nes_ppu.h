@@ -25,6 +25,7 @@ public:
 	void writeRegister(uint16_t address, uint8_t value);
 
 	void setFrameBuffer(gsl::span<uint8_t> frameBuffer);
+	gsl::span<uint8_t> getOAMData();
 
 private:
 	uint32_t cycle = 0;

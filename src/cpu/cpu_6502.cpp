@@ -663,6 +663,15 @@ uint32_t CPU6502::getCycle() const
 	return cycle;
 }
 
+void CPU6502::copyOAM(uint8_t highAddr, gsl::span<uint8_t> oamData)
+{
+	for (uint16_t i = 0; i < 256; ++i) {
+		uint16_t address = highAddr | (i & 0xFF);
+		oamData[i] = addressSpace->read(address);
+	}
+	cycle += 513 + (cycle & 1);
+}
+
 void CPU6502::setZN(uint8_t value)
 {
 	regP = (regP & ~(FLAG_ZERO | FLAG_NEGATIVE)) | (value == 0 ? FLAG_ZERO : 0) | (value & 0x80 ? FLAG_NEGATIVE : 0);
