@@ -51,7 +51,7 @@ void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 	if (!mapper->map(*rom, *cpuAddressSpace, *ppuAddressSpace)) {
 		Logger::logError("Unknown mapper: " + toString(rom->getMapper()));
 	}
-	cpu->reset();
+	cpu->raiseReset();
 	running = true;
 }
 
@@ -71,6 +71,9 @@ void NESMachine::tickFrame()
 			const bool vsync = ppu->tick();
 			if (vsync) {
 				// If we finish a frame, stop here and render it out before continuing
+				if (ppu->canGenerateNMI()) {
+					cpu->raiseNMI();
+				}
 				return;
 			}
 		}

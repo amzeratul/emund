@@ -184,11 +184,7 @@ void CPU6502::tick()
 		break;
 	case 0x00:
 		// BRK
-		storeStack(regPC >> 8);
-		storeStack(regPC & 0xFF);
-		storeStack(regP | FLAG_B0 | FLAG_B1);
-		regP |= FLAG_INTERRUPT_DISABLE;
-		error = ErrorType::Break;
+		raiseIRQ();
 		break;
 	case 0x50:
 		// BVC
@@ -615,14 +611,36 @@ void CPU6502::tick()
 	cycle += timings[instruction] + (timingExtra[instruction] & uint8_t(pageCrossed));
 }
 
-void CPU6502::reset()
+void CPU6502::raiseIRQ()
 {
-	regS = 0xFD;
-	regP = 0x34;
-	cycle = 0;
+	if ((regP & FLAG_INTERRUPT_DISABLE) == 0) {
+		startInterrupt(0xFFFE);
+	}
+}
 
-	regPC = addressSpace->read(0xFFFC);
-	regPC |= static_cast<uint16_t>(addressSpace->read(0xFFFD)) << 8;
+void CPU6502::raiseNMI()
+{
+	startInterrupt(0xFFFA);
+}
+
+void CPU6502::raiseReset()
+{
+	regS = 0xFD; // Should I do this?
+	cycle = 0;
+	startInterrupt(0xFFFC);
+}
+
+void CPU6502::startInterrupt(uint16_t address)
+{
+	storeStack(regPC >> 8);
+	storeStack(regPC & 0xFF);
+	storeStack(regP | FLAG_B0 | FLAG_B1);
+	regP |= FLAG_INTERRUPT_DISABLE;
+
+	regPC = addressSpace->read(address);
+	regPC |= static_cast<uint16_t>(addressSpace->read(address + 1)) << 8;
+
+	cycle += 7;
 }
 
 bool CPU6502::hasError() const
@@ -856,4 +874,3 @@ bool CPU6502::isSamePage(uint16_t addr0, uint16_t addr1)
 {
 	return (addr0 & 0xFF00) == (addr1 & 0xFF00);
 }
-

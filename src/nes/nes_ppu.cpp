@@ -6,6 +6,7 @@ NESPPU::NESPPU()
 {
 	ppuStatus.value = 0;
 	ppuStatus.vBlank = true;
+	oamData.resize(256, 0);
 }
 
 bool NESPPU::tick()
@@ -15,26 +16,43 @@ bool NESPPU::tick()
 	++cycle;
 	++curX;
 
+	const bool isPreRenderLine = curY == 261;
+	const bool isVisibleLine = curY < 240;
+
 	// Last scanline on odd fields is shorter
 	// http://wiki.nesdev.com/w/index.php/PPU_frame_timing
-	const uint32_t scanLen = curY == 262 && frameN % 2 == 1 ? 340 : 341;
+	const uint32_t scanLen = isPreRenderLine && frameN % 2 == 1 ? 340 : 341;
+
+	// Not sure if this is right
+	if (isVisibleLine || isPreRenderLine) {
+		if (curX >= 257 && curX <= 320) {
+			oamAddr = 0;
+		}
+	}
 	
 	if (curX == scanLen) {
+		// Done drawing a scanline
 		curX = 0;
 		++curY;
 
-		if (curY == 20) {
-			ppuStatus.vBlank = false;
-		}
+		// From here on, we're at the START OF THE SCANLINE curY
 
+		// End of picture
 		if (curY == 240) {
 			ppuStatus.vBlank = true;
 		}
-		
-		if (curY == 262) {
+
+		// Post-render line
+		if (curY == 241) {
+			// NMI
+			return true;
+		}
+
+		// Pre-render line
+		if (isPreRenderLine) {
 			frameN++;
 			curY = 0;
-			return true;
+			ppuStatus.vBlank = false;
 		}
 	}
 
@@ -49,6 +67,11 @@ uint32_t NESPPU::getX() const
 uint32_t NESPPU::getY() const
 {
 	return curY;
+}
+
+bool NESPPU::canGenerateNMI() const
+{
+	return ppuCtrl.generateNMI;
 }
 
 void NESPPU::setAddressSpace(AddressSpace8BitBy16Bit& addressSpace)
@@ -82,8 +105,11 @@ uint8_t NESPPU::readRegister(uint16_t address)
 			const uint8_t value = ppuStatus.value;
 			ppuStatus.vBlank = false;
 			ppuScrollIdx = 0; // Should I do this here?
+			ppuAddr = 0;
 			return value;
 		}
+	case 0x2004:
+		return oamData[oamAddr];
 	case 0x2007:
 		{
 			const uint8_t value = addressSpace->read(ppuAddr);
@@ -104,6 +130,14 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		break;
 	case 0x2001:
 		ppuMask.value = value;
+		break;
+	case 0x2003:
+		oamAddr = value;
+		break;
+	case 0x2004:
+		if (!isRendering()) {
+			oamData[oamAddr++] = value;
+		}
 		break;
 	case 0x2005:
 		ppuScroll[ppuScrollIdx] = value;
@@ -135,4 +169,9 @@ void NESPPU::generatePixel()
 {
 	// TODO
 	frameBuffer[curX + curY * 341] = frameN & 0xFF;
+}
+
+bool NESPPU::isRendering() const
+{
+	return curY < 240 || curY == 261;
 }

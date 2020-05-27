@@ -21,7 +21,9 @@ public:
 	void printDebugInfo();
 	void tick();
 
-	void reset();
+	void raiseIRQ();
+	void raiseNMI();
+	void raiseReset();
 
 	bool hasError() const;
 	ErrorType getError() const;
@@ -79,4 +81,6 @@ private:
 
 	FORCEINLINE void updateBranchTakenTiming();
 	FORCEINLINE bool isSamePage(uint16_t addr0, uint16_t addr1);
+
+	FORCEINLINE void startInterrupt(uint16_t address);
 };

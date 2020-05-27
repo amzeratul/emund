@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <vector>
 #include <gsl/gsl>
+#include "../utils/macros.h"
 
 class AddressSpace8BitBy16Bit;
 
@@ -15,6 +16,7 @@ public:
     uint32_t getCycle() const;
 	uint32_t getX() const;
 	uint32_t getY() const;
+	bool canGenerateNMI() const;
 
 	void setAddressSpace(AddressSpace8BitBy16Bit& addressSpace);
 	void mapRegistersOnCPUAddressSpace(AddressSpace8BitBy16Bit& addressSpace);
@@ -95,7 +97,11 @@ private:
 	uint16_t ppuAddr;
 	uint8_t ppuAddrIdx = 0;
 
+	uint8_t oamAddr = 0;
+
 	gsl::span<uint8_t> frameBuffer;
+	std::vector<uint8_t> oamData;
 
 	void generatePixel();
+	FORCEINLINE bool isRendering() const;
 };
