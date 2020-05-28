@@ -197,7 +197,7 @@ void NESMachine::writeRegister(uint16_t address, uint8_t value)
 	}
 }
 
-gsl::span<const uint8_t> NESMachine::getFrameBuffer() const
+gsl::span<const uint32_t> NESMachine::getFrameBuffer() const
 {
 	return frameBuffer;
 }

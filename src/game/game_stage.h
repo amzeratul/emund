@@ -22,6 +22,6 @@ private:
 	Sprite screen;
 	std::shared_ptr<Texture> texture;
 
-	void generateFrame(gsl::span<const uint8_t> frameBuffer);
+	void generateFrame(gsl::span<const uint32_t> frameBuffer);
 	void setupScreen();
 };

@@ -49,12 +49,12 @@ void GameStage::onRender(RenderContext& rc) const
 	});
 }
 
-void GameStage::generateFrame(gsl::span<const uint8_t> frameBuffer)
+void GameStage::generateFrame(gsl::span<const uint32_t> frameBuffer)
 {
 	texture->startLoading();
-	auto texDesc = TextureDescriptor(texture->getSize(), TextureFormat::Red);
+	auto texDesc = TextureDescriptor(texture->getSize(), TextureFormat::RGBA);
 	texDesc.canBeUpdated = true;
-	texDesc.format = TextureFormat::Red;
+	texDesc.format = TextureFormat::RGBA;
 	texDesc.pixelFormat = PixelDataFormat::Image;
 	texDesc.pixelData = TextureDescriptorImageData(gsl::as_bytes(frameBuffer));
 	texture->load(std::move(texDesc));
@@ -64,7 +64,7 @@ void GameStage::setupScreen()
 {
 	const auto textureSize = Vector2i(256, 240);
 	texture = getVideoAPI().createTexture(textureSize);
-	auto texDesc = TextureDescriptor(textureSize, TextureFormat::Red);
+	auto texDesc = TextureDescriptor(textureSize, TextureFormat::RGBA);
 	texDesc.canBeUpdated = true;
 	texture->load(std::move(texDesc));
 

@@ -20,7 +20,7 @@ public:
 	uint8_t readRegister(uint16_t address);
 	void writeRegister(uint16_t address, uint8_t value);
 
-	gsl::span<const uint8_t> getFrameBuffer() const;
+	gsl::span<const uint32_t> getFrameBuffer() const;
 
 private:
 	bool running = false;
@@ -35,7 +35,7 @@ private:
 	std::vector<uint8_t> vram;
 	std::vector<uint8_t> paletteRam;
 
-	std::vector<uint8_t> frameBuffer;
+	std::vector<uint32_t> frameBuffer;
 
 	void reportCPUError();
 };
