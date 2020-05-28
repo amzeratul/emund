@@ -103,6 +103,6 @@ private:
 	gsl::span<uint8_t> frameBuffer;
 	std::vector<uint8_t> oamData;
 
-	void generatePixel(int x, int y);
+	void generatePixel(uint16_t x, uint16_t y);
 	FORCEINLINE bool isRendering() const;
 };

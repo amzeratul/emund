@@ -166,13 +166,27 @@ gsl::span<uint8_t> NESPPU::getOAMData()
 	return oamData;
 }
 
-void NESPPU::generatePixel(int x, int y)
+void NESPPU::generatePixel(uint16_t x, uint16_t y)
 {
+	// Get current tile from nametable
+	// TODO: this should be pre-fetched
+	const uint16_t curTile = addressSpace->read(0x2000 + (x >> 3) + (y << 2));
+	const uint16_t tileX = x & 0x7;
+	const uint16_t tileY = y & 0x7;
+
+	// Read tile data
+	const uint16_t patternTable = 0x0000; // Or 0x1000, not sure what controls this
+	const uint8_t plane0 = addressSpace->read(patternTable + (curTile * 16) + tileY);
+	const uint8_t plane1 = addressSpace->read(patternTable + (curTile * 16) + tileY + 8);
+	const uint8_t value = ((plane0 & (1 << tileX)) != 0 ? 1 : 0) + ((plane1 & (1 << tileX)) != 0 ? 2 : 0);
+	
 	// TODO
-	frameBuffer[x + y * 256] = frameN & 0xFF;
+	uint8_t colour = value << 6;
+	
+	frameBuffer[x + y * 256] = colour;
 }
 
 bool NESPPU::isRendering() const
 {
-	return curY < 240 || curY == 261;
+	return (curY < 240 || curY == 261) && (ppuMask.showBackground || ppuMask.showSprites);
 }
