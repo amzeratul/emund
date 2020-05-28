@@ -62,7 +62,7 @@ void GameStage::generateFrame(gsl::span<const uint8_t> frameBuffer)
 
 void GameStage::setupScreen()
 {
-	const auto textureSize = Vector2i(341, 261);
+	const auto textureSize = Vector2i(256, 240);
 	texture = getVideoAPI().createTexture(textureSize);
 	auto texDesc = TextureDescriptor(textureSize, TextureFormat::Red);
 	texDesc.canBeUpdated = true;

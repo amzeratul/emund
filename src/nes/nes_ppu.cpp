@@ -11,17 +11,13 @@ NESPPU::NESPPU()
 
 bool NESPPU::tick()
 {
-	generatePixel();
-	
-	++cycle;
-	++curX;
-
 	const bool isPreRenderLine = curY == 261;
+	const bool isPostRenderLine = curY == 240;
 	const bool isVisibleLine = curY < 240;
 
-	// Last scanline on odd fields is shorter
-	// http://wiki.nesdev.com/w/index.php/PPU_frame_timing
-	const uint32_t scanLen = isPreRenderLine && frameN % 2 == 1 ? 340 : 341;
+	if (isVisibleLine && curX > 0 && curX <= 256) {
+		generatePixel(curX - 1, curY);
+	}
 
 	// Not sure if this is right
 	if (isVisibleLine || isPreRenderLine) {
@@ -29,33 +25,33 @@ bool NESPPU::tick()
 			oamAddr = 0;
 		}
 	}
-	
+
+	// Last scanline on odd fields is shorter
+	// http://wiki.nesdev.com/w/index.php/PPU_frame_timing
+	const uint32_t scanLen = isPreRenderLine && frameN % 2 == 1 ? 340 : 341;
+
+	// Step
+	++cycle;
+	++curX;	
+
+	if (isPostRenderLine && curX == 1) {
+		ppuStatus.vBlank = true;
+		return true;
+	}
+
+	// Done drawing a scanline
 	if (curX == scanLen) {
-		// Done drawing a scanline
 		curX = 0;
 		++curY;
 
-		// From here on, we're at the START OF THE SCANLINE curY
-
-		// End of picture
-		if (curY == 240) {
-			ppuStatus.vBlank = true;
-		}
-
-		// Post-render line
-		if (curY == 241) {
-			// NMI
-			return true;
-		}
-
-		// Pre-render line
-		if (isPreRenderLine) {
+		// Frame done
+		if (curY == 262) {
 			frameN++;
 			curY = 0;
 			ppuStatus.vBlank = false;
 		}
 	}
-
+	
 	return false;
 }
 
@@ -170,10 +166,10 @@ gsl::span<uint8_t> NESPPU::getOAMData()
 	return oamData;
 }
 
-void NESPPU::generatePixel()
+void NESPPU::generatePixel(int x, int y)
 {
 	// TODO
-	frameBuffer[curX + curY * 341] = frameN & 0xFF;
+	frameBuffer[x + y * 256] = frameN & 0xFF;
 }
 
 bool NESPPU::isRendering() const

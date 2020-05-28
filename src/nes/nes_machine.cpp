@@ -11,7 +11,7 @@ using namespace Halley;
 
 NESMachine::NESMachine()
 {
-	frameBuffer.resize(361 * 261);
+	frameBuffer.resize(256 * 240);
 	
 	cpuAddressSpace = std::make_unique<AddressSpace8BitBy16Bit>();
 	ram.resize(2 * 1024, 0);
