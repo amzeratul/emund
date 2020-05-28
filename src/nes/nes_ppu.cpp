@@ -192,29 +192,32 @@ void NESPPU::generatePixel(uint16_t x, uint16_t y)
 	// Get current tile from nametable
 	// TODO: this should be pre-fetched
 	const uint16_t nameTableAddress = (ppuCtrl & PPUCTRL_BASE_NAMETABLE_ADDRESS) ? 0x2400 : 0x2000;
-	const uint16_t curTile = addressSpace->read(nameTableAddress + (x >> 3) + ((y >> 3) << 5));
-	const uint16_t tileX = x & 0x7;
-	const uint16_t tileY = y & 0x7;
+	const uint16_t tileX = x >> 3;
+	const uint16_t tileY = y >> 3;
+	const uint16_t pixelXinTile = x & 0x7;
+	const uint16_t pixelYinTile = y & 0x7;
+	const uint16_t curTile = addressSpace->read(nameTableAddress + tileX + (tileY << 5));
 
 	// Read tile data
 	const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
-	const uint8_t plane0 = addressSpace->read(patternTable + (curTile * 16) + tileY);
-	const uint8_t plane1 = addressSpace->read(patternTable + (curTile * 16) + tileY + 8);
-	const uint8_t value = ((plane0 & (1 << tileX)) != 0 ? 1 : 0) + ((plane1 & (1 << tileX)) != 0 ? 2 : 0);
+	const uint8_t plane0 = addressSpace->read(patternTable + (curTile * 16) + pixelYinTile);
+	const uint8_t plane1 = addressSpace->read(patternTable + (curTile * 16) + pixelYinTile + 8);
+	const uint8_t tileXBit = 1 << (7 - pixelXinTile);
+	const uint8_t value = ((plane0 & tileXBit) != 0 ? 1 : 0) + ((plane1 & tileXBit) != 0 ? 2 : 0);
 
 	// Read attribute
 	// TODO: this should also be pre-fetched
-	const uint16_t attributeTableAddress = nameTableAddress + 0xC0;
+	const uint16_t attributeTableAddress = nameTableAddress + 0x3C0;
 	const uint16_t attributeEntry = attributeTableAddress + (tileX / 4) + (tileY / 4) * 8;
 	const uint8_t attributeTableValue = addressSpace->read(attributeEntry);
-	const uint8_t paletteOffset = (tileX & 0x1) | ((tileY & 0x1) << 1);
+	const uint8_t paletteOffset = (tileX & 0x2) | ((tileY & 0x2) << 1);
 	const uint8_t paletteEntry = (attributeTableValue >> paletteOffset) & 0x3;
 
 	uint8_t paletteNumber;
 	if (value == 0) {
 		paletteNumber = addressSpace->read(0x3F00);
 	} else {
-		paletteNumber = addressSpace->read(0x3F00 + 3 * paletteEntry + value);
+		paletteNumber = addressSpace->read(0x3F00 + 4 * paletteEntry + value);
 	}
 
 	frameBuffer[x + y * 256] = paletteToColour(paletteNumber);
