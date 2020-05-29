@@ -28,6 +28,7 @@ NESPPU::NESPPU()
 {
 	ppuStatus = 0;
 	oamData.resize(256, 0);
+	oamSecondaryData.resize(32, 0);
 }
 
 bool NESPPU::tick()
@@ -38,6 +39,10 @@ bool NESPPU::tick()
 
 	if (isVisibleLine && curX > 0 && curX <= 256) {
 		generatePixel(curX - 1, curY);
+	}
+
+	if (isVisibleLine) {
+		stepOAM();
 	}
 
 	// Not sure if this is right
@@ -126,6 +131,10 @@ uint8_t NESPPU::readRegister(uint16_t address)
 			return value;
 		}
 	case 0x2004:
+		if (curY < 240 && curX >= 1 && curX <= 64) {
+			// On cycles 1-64 of a visible scanline (when it's initializing secondary OAM), this always returns 0xFF
+			return 0xFF;
+		}
 		return oamData[oamAddr];
 	case 0x2007:
 		{
@@ -293,6 +302,41 @@ uint32_t NESPPU::paletteToColour(uint8_t palette)
 	};
 
 	return static_cast<uint32_t>(entries[palette * 3]) | (static_cast<uint32_t>(entries[palette * 3 + 1]) << 8) | (static_cast<uint32_t>(entries[palette * 3 + 2]) << 16);
+}
+
+void NESPPU::stepOAM()
+{
+	if (curX == 0) {
+		// Do nothing
+	} else if (curX <= 64) {
+		// Initialize secondary OAM to 0xFF (1-64)
+		if ((curX & 0x1) == 0) {
+			// Write on even cycles
+			oamSecondaryData[curX >> 1] = 0xFF;
+		}
+	} else if (curX <= 256) {
+		// Sprite evaluation (65-256)
+		// Should happen spread between 65 and 256, but I'll be lazy here and do it all on 256
+		if (curX == 256) {
+			uint8_t spriteDst = 0;
+			for (uint8_t spriteSrc = 0; spriteSrc < 64; ++spriteSrc) {
+				const uint8_t spriteY = oamData[spriteSrc * 4];
+				const uint8_t spriteHeight = 8;
+				if (curY > spriteY && curY < static_cast<uint8_t>(spriteY + spriteHeight - 1)) {
+					// In range
+					oamSecondaryData[spriteDst] = spriteY;
+					oamSecondaryData[spriteDst + 1] = oamData[spriteSrc * 4 + 1];	
+					oamSecondaryData[spriteDst + 2] = oamData[spriteSrc * 4 + 2];
+					oamSecondaryData[spriteDst + 3] = oamData[spriteSrc * 4 + 3];
+					spriteDst++;
+
+					if (spriteDst == 8) {
+						break;
+					}
+				}
+			}
+		}
+	}
 }
 
 bool NESPPU::isRendering() const

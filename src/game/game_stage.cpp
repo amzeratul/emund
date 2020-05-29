@@ -11,6 +11,8 @@ void GameStage::init()
 {
 	//const char* path = "d:/Emulation/ROMs/NES/nestest.nes";
 	const char* path = "d:/Emulation/ROMs/NES/Donkey Kong (World) (Rev 1).nes";
+	//const char* path = "d:/Emulation/ROMs/NES/Mega Man 2 (USA).nes";
+	//const char* path = "d:/Emulation/ROMs/NES/Super Mario Bros. (World) (HVC-SM).nes";
 	
 	const auto bytes = Path::readFile(Path(path));
 	auto rom = std::make_unique<NESRom>();

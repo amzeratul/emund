@@ -49,9 +49,12 @@ private:
 
 	gsl::span<uint32_t> frameBuffer;
 	std::vector<uint8_t> oamData;
+	std::vector<uint8_t> oamSecondaryData;
 
 	void generatePixel(uint16_t x, uint16_t y);
 	uint32_t paletteToColour(uint8_t palette);
+
+	void stepOAM();
 	
 	FORCEINLINE bool isRendering() const;
 };
