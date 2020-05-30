@@ -71,6 +71,9 @@ private:
 
 	void tickSpriteFetch();
 	void tickBackgroundFetch();
+
+	void writeByte(uint16_t address, uint8_t value);
+	uint8_t readByte(uint16_t address);
 	
 	FORCEINLINE bool isRendering() const;
 	FORCEINLINE uint8_t reverseBits(uint8_t bits) const;

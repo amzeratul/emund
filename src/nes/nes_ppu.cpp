@@ -139,7 +139,7 @@ uint8_t NESPPU::readRegister(uint16_t address)
 		return oamData[oamAddr];
 	case 0x2007:
 		{
-			const uint8_t value = addressSpace->read(ppuAddr);
+			const uint8_t value = readByte(ppuAddr);
 			ppuAddr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
 			return value;
 		}
@@ -179,7 +179,7 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		ppuAddrIdx = 1 - ppuAddrIdx;
 		break;
 	case 0x2007:
-		addressSpace->write(ppuAddr, value);
+		writeByte(ppuAddr, value);
 		ppuAddr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
 		break;
 	default:
@@ -411,6 +411,29 @@ void NESPPU::tickSpriteFetch()
 void NESPPU::tickBackgroundFetch()
 {
 	// TODO
+}
+
+void NESPPU::writeByte(uint16_t address, uint8_t value)
+{
+	// This is to address the insane palette mirroring
+	// 0x3F10 -> 0x3F00
+	// 0x3F14 -> 0x3F04
+	// 0x3F18 -> 0x3F08
+	// 0x3F1C -> 0x3F0C
+	// ONLY those four addresses map in this way
+	if (address >= 0x3F10 && address <= 0x3F1C && (address & 0x3) == 0) {
+		address -= 0x10;
+	}
+	addressSpace->write(address, value);
+}
+
+uint8_t NESPPU::readByte(uint16_t address)
+{
+	// See note above
+	if (address >= 0x3F10 && address <= 0x3F1C && (address & 0x3) == 0) {
+		address -= 0x10;
+	}
+	return addressSpace->read(address);
 }
 
 bool NESPPU::isRendering() const
