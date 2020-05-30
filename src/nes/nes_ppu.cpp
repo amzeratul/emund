@@ -373,7 +373,7 @@ void NESPPU::tickSpriteFetch()
 					oamSecondaryData[spriteDst + 3] = oamData[spriteSrc + 3];
 					spriteDst += 4;
 
-					if (spriteDst == 8) {
+					if (spriteDst == 32) {
 						break;
 					}
 				}
