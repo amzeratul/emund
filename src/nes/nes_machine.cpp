@@ -19,9 +19,9 @@ NESMachine::NESMachine()
 
 	ppuAddressSpace = std::make_unique<AddressSpace8BitBy16Bit>();
 	vram.resize(2 * 1024, 0);
-	paletteRam.resize(256, 0); // THIS IS WRONG, there should only be 32 and they should mirror
+	paletteRam.resize(32, 0);
 	ppuAddressSpace->map(gsl::span<uint8_t>(vram).subspan(0, 1024), 0x2000, 0x3EFF);
-	ppuAddressSpace->map(paletteRam, 0x3F00, 0x3FFF);
+	ppuAddressSpace->map(paletteRam, 0x3F00, 0x3FFF, 0x1F);
 
 	cpu = std::make_unique<CPU6502>();
 	cpu->setAddressSpace(*cpuAddressSpace);

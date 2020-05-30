@@ -9,7 +9,7 @@ AddressSpace8BitBy16Bit::AddressSpace8BitBy16Bit()
 	memory.fill(fallbackPage.data());
 }
 
-void AddressSpace8BitBy16Bit::map(gsl::span<uint8_t> memoryToMap, uint16_t startAddress, uint16_t endAddress)
+void AddressSpace8BitBy16Bit::map(gsl::span<uint8_t> memoryToMap, uint16_t startAddress, uint16_t endAddress, uint8_t mask)
 {
 	Expects(startAddress % pageSize == 0);
 	Expects(endAddress % pageSize == pageSize - 1);
@@ -18,10 +18,12 @@ void AddressSpace8BitBy16Bit::map(gsl::span<uint8_t> memoryToMap, uint16_t start
 	const size_t dstLen = size_t(endAddress) - startAddress + 1;
 	const size_t srcLen = memoryToMap.size();
 	const size_t dstPages = dstLen / pageSize;
-	const size_t srcPages = srcLen / pageSize;
+	const size_t srcPages = std::max(size_t(1), srcLen / pageSize);
 
 	for (size_t pageI = 0; pageI < dstPages; ++pageI) {
-		memory[pageI + (startAddress / pageSize)] = memoryToMap.data() + ((pageI % srcPages) * pageSize);
+		const auto page = pageI + (startAddress / pageSize);
+		memory[page] = memoryToMap.data() + ((pageI % srcPages) * pageSize);
+		masks[page] = mask;
 	}
 }
 

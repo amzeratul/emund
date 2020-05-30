@@ -29,7 +29,8 @@ public:
 	FORCEINLINE uint8_t readDirect(uint16_t address) const
 	{
 		const auto& page = memory[address >> 8];
-		return page[address & 0xFF];
+		const auto mask = masks[address >> 8];
+		return page[address & mask];
 	}
 	
 	FORCEINLINE void write(uint16_t address, uint8_t value) const
@@ -44,10 +45,11 @@ public:
 		}
 
 		const auto& page = memory[address >> 8];
-		page[address & 0xFF] = value;
+		const auto mask = masks[address >> 8];
+		page[address & mask] = value;
 	}
 
-	void map(gsl::span<uint8_t> memory, uint16_t startAddress, uint16_t endAddress);
+	void map(gsl::span<uint8_t> memory, uint16_t startAddress, uint16_t endAddress, uint8_t mask = 0xFF);
 	void unmap(uint16_t startAddress, uint16_t endAddress);
 
 	void mapRegister(uint16_t startAddress, uint16_t endAddress, void* data, RegisterCallback callback);
@@ -59,6 +61,7 @@ private:
 	constexpr static size_t numPages = 256;
 
 	std::array<uint8_t*, numPages> memory;
+	std::array<uint8_t, numPages> masks;
 	std::array<uint8_t, pageSize> fallbackPage;
 
 	uint16_t registersStartAddress = 0xFFFF;
