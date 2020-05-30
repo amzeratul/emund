@@ -213,7 +213,7 @@ void NESPPU::generatePixel(uint8_t x, uint8_t y)
 		result = { bg.value, 0 };
 	}
 	
-	const uint8_t colour = addressSpace->read(0x3F00 + 4 * result.palette + result.value);
+	const uint8_t colour = addressSpace->readDirect(0x3F00 + 4 * result.palette + result.value);
 
 	frameBuffer[size_t(x) + size_t(y) * 256] = paletteToColour(colour);
 }
@@ -227,7 +227,7 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	const uint8_t tileY = y >> 3;
 	const uint8_t pixelXinTile = x & 0x7;
 	const uint8_t pixelYinTile = y & 0x7;
-	const uint8_t curTile = addressSpace->read(nameTableAddress + tileX + (tileY << 5));
+	const uint8_t curTile = addressSpace->readDirect(nameTableAddress + tileX + (tileY << 5));
 
 	// Read tile data
 	const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
@@ -240,7 +240,7 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	// TODO: this should also be pre-fetched
 	const uint16_t attributeTableAddress = nameTableAddress + 0x3C0;
 	const uint16_t attributeEntry = attributeTableAddress + (tileX / 4) + (tileY / 4) * 8;
-	const uint8_t attributeTableValue = addressSpace->read(attributeEntry);
+	const uint8_t attributeTableValue = addressSpace->readDirect(attributeEntry);
 	const uint8_t paletteOffset = (tileX & 0x2) | ((tileY & 0x2) << 1);
 	const uint8_t paletteEntry = (attributeTableValue >> paletteOffset) & 0x3;
 
@@ -256,8 +256,8 @@ NESPPU::PixelOutput NESPPU::generateSprite(uint8_t x, uint8_t y)
 			const uint8_t palette = spriteData[i].attributes & 0x3;
 			const uint8_t value = (spriteData[i].patternTable0 & 0x1) | ((spriteData[i].patternTable1 & 0x1) << 1);
 			const uint8_t priority = (spriteData[i].attributes >> 5) & 0x1;
-			shiftRegisterRight(spriteData[i].patternTable0);
-			shiftRegisterRight(spriteData[i].patternTable1);
+			spriteData[i].patternTable0 >>= 1;
+			spriteData[i].patternTable1 >>= 1;
 			if (value != 0) {
 				return PixelOutput { value, palette, priority };
 			}
@@ -340,10 +340,13 @@ uint32_t NESPPU::paletteToColour(uint8_t palette)
 
 void NESPPU::tickSpriteFetch()
 {
+	const bool tallSprites = (ppuCtrl & PPUCTRL_SPRITE_SIZE) != 0;
+
 	if (curX == 0) {
 		// Do nothing
 	} else if (curX <= 64) {
 		// Initialize secondary OAM to 0xFF (1-64)
+		// This should be timing-correct
 		if ((curX & 0x1) == 0) {
 			// Write on even cycles
 			oamSecondaryData[(curX >> 1) - 1] = 0xFF;
@@ -356,7 +359,7 @@ void NESPPU::tickSpriteFetch()
 			size_t spriteDst = 0;
 			const uint8_t scanline = curY;
 			
-			for (size_t spriteSrc = 0; spriteSrc < 64; spriteSrc += 4) {
+			for (size_t spriteSrc = 0; spriteSrc < 256; spriteSrc += 4) {
 				const uint8_t spriteY = oamData[spriteSrc];
 				const uint8_t spriteHeight = 8;
 				if (scanline >= uint8_t(spriteY) && scanline < static_cast<uint8_t>(spriteY + spriteHeight)) {
@@ -380,15 +383,15 @@ void NESPPU::tickSpriteFetch()
 		if (curX == 320) {
 			for (size_t i = 0; i < 8; ++i) {
 				const uint8_t y = oamSecondaryData[i * 4];
-				const uint8_t index = oamSecondaryData[i * 4 + 1];
+				const uint8_t index = oamSecondaryData[i * 4 + 1] >> (tallSprites ? 1 : 0);
 				spriteData[i].attributes = oamSecondaryData[i * 4 + 2];
 				spriteData[i].x = oamSecondaryData[i * 4 + 3];
 
 				const uint8_t pixelYinTile = curY - y;
 
-				const uint16_t patternTable = (ppuCtrl & PPUCTRL_SPRITE_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
-				spriteData[i].patternTable0 = addressSpace->read(patternTable + (index * 16) + pixelYinTile);
-				spriteData[i].patternTable1 = addressSpace->read(patternTable + (index * 16) + pixelYinTile + 8);
+				const uint16_t patternTable = tallSprites ? (index & 0x1) : (ppuCtrl & PPUCTRL_SPRITE_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
+				spriteData[i].patternTable0 = addressSpace->readDirect(patternTable + (index * 16) + pixelYinTile);
+				spriteData[i].patternTable1 = addressSpace->readDirect(patternTable + (index * 16) + pixelYinTile + 8);
 			}
 		}
 	}
@@ -402,9 +405,4 @@ void NESPPU::tickBackgroundFetch()
 bool NESPPU::isRendering() const
 {
 	return (curY < 240 || curY == 261) && (ppuMask & PPUMASK_SHOW_BACKGROUND || ppuMask & PPUMASK_SHOW_SPRITES);
-}
-
-void NESPPU::shiftRegisterRight(uint8_t& reg)
-{
-	reg = ((reg & 0x1) << 7) | (reg >> 1);
 }

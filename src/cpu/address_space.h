@@ -23,6 +23,11 @@ public:
 			}
 		}
 		
+		return readDirect(address);
+	}
+
+	FORCEINLINE uint8_t readDirect(uint16_t address) const
+	{
 		const auto& page = memory[address >> 8];
 		return page[address & 0xFF];
 	}

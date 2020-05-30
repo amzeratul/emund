@@ -666,7 +666,7 @@ uint32_t CPU6502::getCycle() const
 void CPU6502::copyOAM(uint8_t highAddr, gsl::span<uint8_t> oamData)
 {
 	for (uint16_t i = 0; i < 256; ++i) {
-		uint16_t address = highAddr | (i & 0xFF);
+		uint16_t address = (uint16_t(highAddr) << 8) | (i & 0xFF);
 		oamData[i] = addressSpace->read(address);
 	}
 	cycle += 513 + (cycle & 1);

@@ -73,5 +73,4 @@ private:
 	void tickBackgroundFetch();
 	
 	FORCEINLINE bool isRendering() const;
-	FORCEINLINE void shiftRegisterRight(uint8_t& reg);
 };
