@@ -249,21 +249,24 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 
 NESPPU::PixelOutput NESPPU::generateSprite(uint8_t x, uint8_t y)
 {
+	auto result = PixelOutput { 0, 0, 0 };
 	for (size_t i = 0; i < 8; ++i) {
 		if (spriteData[i].x > 0) {
 			--spriteData[i].x;
 		} else {
-			const uint8_t palette = spriteData[i].attributes & 0x3;
 			const uint8_t value = (spriteData[i].patternTable0 & 0x1) | ((spriteData[i].patternTable1 & 0x1) << 1);
+			const uint8_t palette = spriteData[i].attributes & 0x3;
 			const uint8_t priority = (spriteData[i].attributes >> 5) & 0x1;
 			spriteData[i].patternTable0 >>= 1;
 			spriteData[i].patternTable1 >>= 1;
-			if (value != 0) {
-				return PixelOutput { value, palette, priority };
+			if (value != 0 && result.value == 0) {
+				result.value = value;
+				result.palette = uint8_t(palette + 4);
+				result.priority = priority;
 			}
 		}
 	}
-	return PixelOutput { 0, 0, 0 };
+	return result;
 }
 
 uint32_t NESPPU::paletteToColour(uint8_t palette)
@@ -384,14 +387,22 @@ void NESPPU::tickSpriteFetch()
 			for (size_t i = 0; i < 8; ++i) {
 				const uint8_t y = oamSecondaryData[i * 4];
 				const uint8_t index = oamSecondaryData[i * 4 + 1] >> (tallSprites ? 1 : 0);
-				spriteData[i].attributes = oamSecondaryData[i * 4 + 2];
-				spriteData[i].x = oamSecondaryData[i * 4 + 3];
+				auto& sprite = spriteData[i];
+				sprite.attributes = oamSecondaryData[i * 4 + 2];
+				sprite.x = oamSecondaryData[i * 4 + 3];
 
 				const uint8_t pixelYinTile = curY - y;
 
+				const bool flipHorizontal = (sprite.attributes & 0x40) == 0;
+				const bool flipVertical = (sprite.attributes & 0x80) == 0;
+				
 				const uint16_t patternTable = tallSprites ? (index & 0x1) : (ppuCtrl & PPUCTRL_SPRITE_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
-				spriteData[i].patternTable0 = addressSpace->readDirect(patternTable + (index * 16) + pixelYinTile);
-				spriteData[i].patternTable1 = addressSpace->readDirect(patternTable + (index * 16) + pixelYinTile + 8);
+				sprite.patternTable0 = addressSpace->readDirect(patternTable + (index * 16) + pixelYinTile);
+				sprite.patternTable1 = addressSpace->readDirect(patternTable + (index * 16) + pixelYinTile + 8);
+				if (flipHorizontal) {
+					sprite.patternTable0 = reverseBits(sprite.patternTable0);
+					sprite.patternTable1 = reverseBits(sprite.patternTable1);
+				}
 			}
 		}
 	}
@@ -405,4 +416,16 @@ void NESPPU::tickBackgroundFetch()
 bool NESPPU::isRendering() const
 {
 	return (curY < 240 || curY == 261) && (ppuMask & PPUMASK_SHOW_BACKGROUND || ppuMask & PPUMASK_SHOW_SPRITES);
+}
+
+uint8_t NESPPU::reverseBits(uint8_t bits) const
+{
+	return ((bits & 0x01) << 7)
+		| ((bits & 0x02) << 5)
+		| ((bits & 0x04) << 3)
+		| ((bits & 0x08) << 1)
+		| ((bits & 0x10) >> 1)
+		| ((bits & 0x20) >> 3)
+		| ((bits & 0x40) >> 5)
+		| ((bits & 0x80) >> 7);
 }

@@ -73,4 +73,5 @@ private:
 	void tickBackgroundFetch();
 	
 	FORCEINLINE bool isRendering() const;
+	FORCEINLINE uint8_t reverseBits(uint8_t bits) const;
 };
