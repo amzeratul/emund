@@ -60,9 +60,9 @@ private:
 	constexpr static size_t pageSize = 256;
 	constexpr static size_t numPages = 256;
 
-	std::array<uint8_t*, numPages> memory;
-	std::array<uint8_t, numPages> masks;
-	std::array<uint8_t, pageSize> fallbackPage;
+	uint8_t* memory[numPages];
+	uint8_t masks[numPages];
+	uint8_t fallbackPage[pageSize];
 
 	uint16_t registersStartAddress = 0xFFFF;
 	uint16_t registersEndAddress = 0x0000;

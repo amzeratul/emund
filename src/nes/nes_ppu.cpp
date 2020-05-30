@@ -271,74 +271,74 @@ NESPPU::PixelOutput NESPPU::generateSprite(uint8_t x, uint8_t y)
 
 uint32_t NESPPU::paletteToColour(uint8_t palette)
 {
-	const static uint8_t entries[] = {
-		84, 84, 84,
-		0, 30, 116,
-		8, 16, 144,
-		48, 0, 136,
-		68, 0, 100,
-		92, 0, 48,
-		84, 4, 0,
-		60, 24, 0,
-		32, 42, 0,
-		8, 58, 0,
-		0, 64, 0,
-		0, 60, 0,
-		0, 50, 60,
-		0, 0, 0,
-		0, 0, 0,
-		0, 0, 0,
-		152, 150, 152,
-		8, 76, 196,
-		48, 50, 236,
-		92, 30, 228,
-		136, 20, 176,
-		160, 20, 100,
-		152, 34, 32,
-		120, 60, 0,
-		84, 90, 0,
-		40, 114, 0,
-		8, 124, 0,
-		0, 118, 40,
-		0, 102, 120,
-		0, 0, 0,
-		0, 0, 0,
-		0, 0, 0,
-		236, 238, 236,
-		76, 154, 236,
-		120, 124, 236,
-		176, 98, 236,
-		228, 84, 236,
-		236, 88, 180,
-		236, 106, 100,
-		212, 136, 32,
-		160, 170, 0,
-		116, 196, 0,
-		76, 208, 32,
-		56, 204, 108,
-		56, 180, 204,
-		60, 60, 60,
-		0, 0, 0,
-		0, 0, 0,
-		236, 238, 236,
-		168, 204, 236,
-		188, 188, 236,
-		212, 178, 236,
-		236, 174, 236,
-		236, 174, 212,
-		236, 180, 176,
-		228, 196, 144,
-		204, 210, 120,
-		180, 222, 120,
-		168, 226, 144,
-		152, 226, 180,
-		160, 214, 228,
-		160, 162, 160,
-		0, 0, 0,
-		0, 0, 0
+	const static uint32_t entries[] = {
+		0x7C7C7C,
+		0xFC0000,
+		0xBC0000,
+		0xBC2844,
+		0x840094,
+		0x2000A8,
+		0x0010A8,
+		0x001488,
+		0x003050,
+		0x007800,
+		0x006800,
+		0x005800,
+		0x584000,
+		0x000000,
+		0x000000,
+		0x000000,
+		0xBCBCBC,
+		0xF87800,
+		0xF85800,
+		0xFC4468,
+		0xCC00D8,
+		0x5800E4,
+		0x0038F8,
+		0x105CE4,
+		0x007CAC,
+		0x00B800,
+		0x00A800,
+		0x44A800,
+		0x888800,
+		0x000000,
+		0x000000,
+		0x000000,
+		0xF8F8F8,
+		0xFCBC3C,
+		0xFC8868,
+		0xF87898,
+		0xF878F8,
+		0x9858F8,
+		0x5878F8,
+		0x44A0FC,
+		0x00B8F8,
+		0x18F8B8,
+		0x54D858,
+		0x98F858,
+		0xD8E800,
+		0x787878,
+		0x000000,
+		0x000000,
+		0xFCFCFC,
+		0xFCE4A4,
+		0xF8B8B8,
+		0xF8B8D8,
+		0xF8B8F8,
+		0xC0A4F8,
+		0xB0D0F0,
+		0xA8E0FC,
+		0x78D8F8,
+		0x78F8D8,
+		0xB8F8B8,
+		0xD8F8B8,
+		0xFCFC00,
+		0xD8D8D8,
+		0x000000,
+		0x000000,
 	};
 
-	return static_cast<uint32_t>(entries[palette * 3]) | (static_cast<uint32_t>(entries[palette * 3 + 1]) << 8) | (static_cast<uint32_t>(entries[palette * 3 + 2]) << 16);
+	return entries[palette];
 }
 
 void NESPPU::tickSpriteFetch()
@@ -391,12 +391,12 @@ void NESPPU::tickSpriteFetch()
 				sprite.attributes = oamSecondaryData[i * 4 + 2];
 				sprite.x = oamSecondaryData[i * 4 + 3];
 
-				const uint8_t pixelYinTile = curY - y;
-
 				const bool flipHorizontal = (sprite.attributes & 0x40) == 0;
-				const bool flipVertical = (sprite.attributes & 0x80) == 0;
-				
+				const bool flipVertical = (sprite.attributes & 0x80) != 0;
+
+				const uint8_t pixelYinTile = flipVertical ? (7 - curY + y) : curY - y;
 				const uint16_t patternTable = tallSprites ? (index & 0x1) : (ppuCtrl & PPUCTRL_SPRITE_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
+				
 				sprite.patternTable0 = addressSpace->readDirect(patternTable + (index * 16) + pixelYinTile);
 				sprite.patternTable1 = addressSpace->readDirect(patternTable + (index * 16) + pixelYinTile + 8);
 				if (flipHorizontal) {

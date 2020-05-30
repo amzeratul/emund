@@ -4,9 +4,10 @@
 using namespace Halley;
 
 AddressSpace8BitBy16Bit::AddressSpace8BitBy16Bit()
+	: memory{fallbackPage}
+	, masks{0xFF}
+	, fallbackPage{0}
 {
-	fallbackPage.fill(0);
-	memory.fill(fallbackPage.data());
 }
 
 void AddressSpace8BitBy16Bit::map(gsl::span<uint8_t> memoryToMap, uint16_t startAddress, uint16_t endAddress, uint8_t mask)
@@ -36,7 +37,7 @@ void AddressSpace8BitBy16Bit::unmap(uint16_t startAddress, uint16_t endAddress)
 	const size_t len = size_t(endAddress) - startAddress + 1;
 
 	for (size_t pageI = 0; pageI < (len / pageSize); ++pageI) {
-		memory[pageI + (startAddress / pageSize)] = fallbackPage.data();
+		memory[pageI + (startAddress / pageSize)] = fallbackPage;
 	}
 }
 

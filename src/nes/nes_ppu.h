@@ -67,7 +67,7 @@ private:
 	void generatePixel(uint8_t x, uint8_t y);
 	PixelOutput generateBackground(uint8_t x, uint8_t y);
 	PixelOutput generateSprite(uint8_t x, uint8_t y);
-	uint32_t paletteToColour(uint8_t palette);
+	FORCEINLINE uint32_t paletteToColour(uint8_t palette);
 
 	void tickSpriteFetch();
 	void tickBackgroundFetch();
