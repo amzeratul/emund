@@ -51,10 +51,27 @@ private:
 	std::vector<uint8_t> oamData;
 	std::vector<uint8_t> oamSecondaryData;
 
-	void generatePixel(uint16_t x, uint16_t y);
+	struct SpriteData {
+		uint8_t patternTable0;
+		uint8_t patternTable1;
+		uint8_t attributes;
+		uint8_t x;
+	} spriteData[8];
+
+	struct PixelOutput {
+		uint8_t value;
+		uint8_t palette;
+		uint8_t priority;
+	};
+
+	void generatePixel(uint8_t x, uint8_t y);
+	PixelOutput generateBackground(uint8_t x, uint8_t y);
+	PixelOutput generateSprite(uint8_t x, uint8_t y);
 	uint32_t paletteToColour(uint8_t palette);
 
-	void stepOAM();
+	void tickSpriteFetch();
+	void tickBackgroundFetch();
 	
 	FORCEINLINE bool isRendering() const;
+	FORCEINLINE void shiftRegisterRight(uint8_t& reg);
 };

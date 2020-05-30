@@ -42,7 +42,8 @@ bool NESPPU::tick()
 	}
 
 	if (isVisibleLine) {
-		stepOAM();
+		tickSpriteFetch();
+		tickBackgroundFetch();
 	}
 
 	// Not sure if this is right
@@ -196,16 +197,37 @@ gsl::span<uint8_t> NESPPU::getOAMData()
 	return oamData;
 }
 
-void NESPPU::generatePixel(uint16_t x, uint16_t y)
+void NESPPU::generatePixel(uint8_t x, uint8_t y)
+{
+	auto bg = generateBackground(x, y);
+	auto sprite = generateSprite(x, y);
+
+	PixelOutput result;
+	if (sprite.value != 0 && bg.value != 0) {
+		result = sprite.priority == 0 ? sprite : bg;
+	} else if (sprite.value != 0) {
+		result = sprite;
+	} else if (bg.value != 0) {
+		result = bg;
+	} else {
+		result = { bg.value, 0 };
+	}
+	
+	const uint8_t colour = addressSpace->read(0x3F00 + 4 * result.palette + result.value);
+
+	frameBuffer[size_t(x) + size_t(y) * 256] = paletteToColour(colour);
+}
+
+NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 {
 	// Get current tile from nametable
 	// TODO: this should be pre-fetched
 	const uint16_t nameTableAddress = (ppuCtrl & PPUCTRL_BASE_NAMETABLE_ADDRESS) ? 0x2400 : 0x2000;
-	const uint16_t tileX = x >> 3;
-	const uint16_t tileY = y >> 3;
-	const uint16_t pixelXinTile = x & 0x7;
-	const uint16_t pixelYinTile = y & 0x7;
-	const uint16_t curTile = addressSpace->read(nameTableAddress + tileX + (tileY << 5));
+	const uint8_t tileX = x >> 3;
+	const uint8_t tileY = y >> 3;
+	const uint8_t pixelXinTile = x & 0x7;
+	const uint8_t pixelYinTile = y & 0x7;
+	const uint8_t curTile = addressSpace->read(nameTableAddress + tileX + (tileY << 5));
 
 	// Read tile data
 	const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
@@ -222,14 +244,26 @@ void NESPPU::generatePixel(uint16_t x, uint16_t y)
 	const uint8_t paletteOffset = (tileX & 0x2) | ((tileY & 0x2) << 1);
 	const uint8_t paletteEntry = (attributeTableValue >> paletteOffset) & 0x3;
 
-	uint8_t paletteNumber;
-	if (value == 0) {
-		paletteNumber = addressSpace->read(0x3F00);
-	} else {
-		paletteNumber = addressSpace->read(0x3F00 + 4 * paletteEntry + value);
-	}
+	return { value, paletteEntry };
+}
 
-	frameBuffer[x + y * 256] = paletteToColour(paletteNumber);
+NESPPU::PixelOutput NESPPU::generateSprite(uint8_t x, uint8_t y)
+{
+	for (size_t i = 0; i < 8; ++i) {
+		if (spriteData[i].x > 0) {
+			--spriteData[i].x;
+		} else {
+			const uint8_t palette = spriteData[i].attributes & 0x3;
+			const uint8_t value = (spriteData[i].patternTable0 & 0x1) | ((spriteData[i].patternTable1 & 0x1) << 1);
+			const uint8_t priority = (spriteData[i].attributes >> 5) & 0x1;
+			shiftRegisterRight(spriteData[i].patternTable0);
+			shiftRegisterRight(spriteData[i].patternTable1);
+			if (value != 0) {
+				return PixelOutput { value, palette, priority };
+			}
+		}
+	}
+	return PixelOutput { 0, 0, 0 };
 }
 
 uint32_t NESPPU::paletteToColour(uint8_t palette)
@@ -304,7 +338,7 @@ uint32_t NESPPU::paletteToColour(uint8_t palette)
 	return static_cast<uint32_t>(entries[palette * 3]) | (static_cast<uint32_t>(entries[palette * 3 + 1]) << 8) | (static_cast<uint32_t>(entries[palette * 3 + 2]) << 16);
 }
 
-void NESPPU::stepOAM()
+void NESPPU::tickSpriteFetch()
 {
 	if (curX == 0) {
 		// Do nothing
@@ -312,23 +346,26 @@ void NESPPU::stepOAM()
 		// Initialize secondary OAM to 0xFF (1-64)
 		if ((curX & 0x1) == 0) {
 			// Write on even cycles
-			oamSecondaryData[curX >> 1] = 0xFF;
+			oamSecondaryData[(curX >> 1) - 1] = 0xFF;
 		}
 	} else if (curX <= 256) {
 		// Sprite evaluation (65-256)
-		// Should happen spread between 65 and 256, but I'll be lazy here and do it all on 256
+		// Should happen spread between 65 and 256, but doing it all in one go here
+		// TIMING ISSUE: if the oamData changes between 65 and 255, the emulation might be incorrect
 		if (curX == 256) {
-			uint8_t spriteDst = 0;
-			for (uint8_t spriteSrc = 0; spriteSrc < 64; ++spriteSrc) {
-				const uint8_t spriteY = oamData[spriteSrc * 4];
+			size_t spriteDst = 0;
+			const uint8_t scanline = curY;
+			
+			for (size_t spriteSrc = 0; spriteSrc < 64; spriteSrc += 4) {
+				const uint8_t spriteY = oamData[spriteSrc];
 				const uint8_t spriteHeight = 8;
-				if (curY > spriteY && curY < static_cast<uint8_t>(spriteY + spriteHeight - 1)) {
+				if (scanline >= uint8_t(spriteY) && scanline < static_cast<uint8_t>(spriteY + spriteHeight)) {
 					// In range
 					oamSecondaryData[spriteDst] = spriteY;
-					oamSecondaryData[spriteDst + 1] = oamData[spriteSrc * 4 + 1];	
-					oamSecondaryData[spriteDst + 2] = oamData[spriteSrc * 4 + 2];
-					oamSecondaryData[spriteDst + 3] = oamData[spriteSrc * 4 + 3];
-					spriteDst++;
+					oamSecondaryData[spriteDst + 1] = oamData[spriteSrc + 1];
+					oamSecondaryData[spriteDst + 2] = oamData[spriteSrc + 2];
+					oamSecondaryData[spriteDst + 3] = oamData[spriteSrc + 3];
+					spriteDst += 4;
 
 					if (spriteDst == 8) {
 						break;
@@ -336,10 +373,38 @@ void NESPPU::stepOAM()
 				}
 			}
 		}
+	} else {
+		// Sprite fetching (257-320)
+		// Should happen between 257-320
+		// TIMING ISSUE: if the pattern table changes between 257-319, the emulation might be incorrect
+		if (curX == 320) {
+			for (size_t i = 0; i < 8; ++i) {
+				const uint8_t y = oamSecondaryData[i * 4];
+				const uint8_t index = oamSecondaryData[i * 4 + 1];
+				spriteData[i].attributes = oamSecondaryData[i * 4 + 2];
+				spriteData[i].x = oamSecondaryData[i * 4 + 3];
+
+				const uint8_t pixelYinTile = curY - y;
+
+				const uint16_t patternTable = (ppuCtrl & PPUCTRL_SPRITE_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
+				spriteData[i].patternTable0 = addressSpace->read(patternTable + (index * 16) + pixelYinTile);
+				spriteData[i].patternTable1 = addressSpace->read(patternTable + (index * 16) + pixelYinTile + 8);
+			}
+		}
 	}
+}
+
+void NESPPU::tickBackgroundFetch()
+{
+	// TODO
 }
 
 bool NESPPU::isRendering() const
 {
 	return (curY < 240 || curY == 261) && (ppuMask & PPUMASK_SHOW_BACKGROUND || ppuMask & PPUMASK_SHOW_SPRITES);
+}
+
+void NESPPU::shiftRegisterRight(uint8_t& reg)
+{
+	reg = ((reg & 0x1) << 7) | (reg >> 1);
 }
