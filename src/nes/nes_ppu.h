@@ -14,6 +14,7 @@ public:
     bool tick();
 	
     uint32_t getCycle() const;
+	uint32_t getFrameNumber() const;
 	uint32_t getX() const;
 	uint32_t getY() const;
 	bool canGenerateNMI() const;

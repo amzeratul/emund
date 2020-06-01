@@ -57,6 +57,8 @@ private:
 	uint8_t port0 = 0;
 	uint8_t port1 = 0;
 
+	size_t nFrames;
+
 	void reportCPUError();
 };
 

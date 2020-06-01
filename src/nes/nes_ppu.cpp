@@ -34,7 +34,6 @@ NESPPU::NESPPU()
 bool NESPPU::tick()
 {
 	const bool isPreRenderLine = curY == 261;
-	const bool isPostRenderLine = curY == 240;
 	const bool isVisibleLine = curY < 240;
 
 	if (isVisibleLine && curX > 0 && curX <= 256) {
@@ -65,7 +64,8 @@ bool NESPPU::tick()
 	++cycle;
 	++curX;	
 
-	if (isPostRenderLine && curX == 1) {
+	// VBlank happens on the line after post-render
+	if (curY == 241 && curX == 1) {
 		ppuStatus |= PPUSTATUS_VBLANK;
 		return true;
 	}
@@ -155,12 +155,18 @@ uint8_t NESPPU::readRegister(uint16_t address)
 
 void NESPPU::writeRegister(uint16_t address, uint8_t value)
 {
+	bool isReady = cycle >= 88974;
+	
 	switch (address) {
 	case 0x2000:
-		ppuCtrl = value;
+		if (isReady) {
+			ppuCtrl = value;
+		}
 		break;
 	case 0x2001:
-		ppuMask = value;
+		if (isReady) {
+			ppuMask = value;
+		}
 		break;
 	case 0x2003:
 		oamAddr = value;
@@ -171,16 +177,20 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		}
 		break;
 	case 0x2005:
-		ppuScroll[ppuScrollIdx] = value;
-		ppuScrollIdx = 1 - ppuScrollIdx;
+		if (isReady) {
+			ppuScroll[ppuScrollIdx] = value;
+			ppuScrollIdx = 1 - ppuScrollIdx;
+		}
 		break;
 	case 0x2006:
-		if (ppuAddrIdx == 0) {
-			ppuAddr = (ppuAddr & 0x00FF) | ((static_cast<uint16_t>(value) << 8) & 0x3F00);
-		} else {
-			ppuAddr = (ppuAddr & 0xFF00) | value;
+		if (isReady) {
+			if (ppuAddrIdx == 0) {
+				ppuAddr = (ppuAddr & 0x00FF) | ((static_cast<uint16_t>(value) << 8) & 0x3F00);
+			} else {
+				ppuAddr = (ppuAddr & 0xFF00) | value;
+			}
+			ppuAddrIdx = 1 - ppuAddrIdx;
 		}
-		ppuAddrIdx = 1 - ppuAddrIdx;
 		break;
 	case 0x2007:
 		writeByte(ppuAddr, value);
@@ -199,6 +209,11 @@ void NESPPU::setFrameBuffer(gsl::span<uint32_t> fb)
 gsl::span<uint8_t> NESPPU::getOAMData()
 {
 	return oamData;
+}
+
+uint32_t NESPPU::getFrameNumber() const
+{
+	return frameN;
 }
 
 void NESPPU::generatePixel(uint8_t x, uint8_t y)

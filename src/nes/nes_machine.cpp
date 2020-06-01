@@ -92,7 +92,7 @@ void NESMachine::tickFrame(NESInputJoystick joy0, NESInputJoystick joy1)
 	const uint32_t startCPU = cpu->getCycle();
 	const uint32_t endCPU = startCPU + nCPUCycles;
 	*/
-	
+
 	while (running) {
 		// Step PPU first, have it catch up to CPU
 		const auto targetPPUCycle = cpu->getCycle() * 3;
@@ -103,6 +103,8 @@ void NESMachine::tickFrame(NESInputJoystick joy0, NESInputJoystick joy1)
 				if (ppu->canGenerateNMI()) {
 					cpu->raiseNMI();
 				}
+
+				//Logger::logInfo("Frame " + toString(ppu->getFrameNumber()) + ": " + toString(cpu->getCycle() - startCPU) + ", total: " + toString(cpu->getCycle()) + ", average: " + toString(cpu->getCycle() / (ppu->getFrameNumber() + 1)));
 				return;
 			}
 		}
