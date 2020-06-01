@@ -51,6 +51,10 @@ bool NESPPU::tick()
 		if (curX >= 257 && curX <= 320) {
 			oamAddr = 0;
 		}
+
+		if (isPreRenderLine && curX == 1) {
+			ppuStatus &= ~PPUSTATUS_SPRITE_ZERO_HIT;
+		}
 	}
 
 	// Last scanline on odd fields is shorter
@@ -199,12 +203,15 @@ gsl::span<uint8_t> NESPPU::getOAMData()
 
 void NESPPU::generatePixel(uint8_t x, uint8_t y)
 {
-	auto bg = generateBackground(x, y);
-	auto sprite = generateSprite(x, y);
+	auto bg = (ppuMask & PPUMASK_SHOW_BACKGROUND) ? generateBackground(x, y) : PixelOutput { 0, 0, 0 };
+	auto sprite = (ppuMask & PPUMASK_SHOW_SPRITES) ? generateSprite(x, y) : PixelOutput { 0, 0, 0 };
 
 	PixelOutput result;
 	if (sprite.value != 0 && bg.value != 0) {
 		result = sprite.priority == 0 ? sprite : bg;
+		if (sprite.spriteN == 0) {
+			ppuStatus |= PPUSTATUS_SPRITE_ZERO_HIT;
+		}
 	} else if (sprite.value != 0) {
 		result = sprite;
 	} else if (bg.value != 0) {
@@ -249,7 +256,7 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 
 NESPPU::PixelOutput NESPPU::generateSprite(uint8_t x, uint8_t y)
 {
-	auto result = PixelOutput { 0, 0, 0 };
+	auto result = PixelOutput { 0, 0, 0, 0 };
 	for (size_t i = 0; i < 8; ++i) {
 		if (spriteData[i].x > 0) {
 			--spriteData[i].x;
@@ -263,6 +270,7 @@ NESPPU::PixelOutput NESPPU::generateSprite(uint8_t x, uint8_t y)
 				result.value = value;
 				result.palette = uint8_t(palette + 4);
 				result.priority = priority;
+				result.spriteN = uint8_t(i);
 			}
 		}
 	}

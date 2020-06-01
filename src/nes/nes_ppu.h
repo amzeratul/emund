@@ -62,6 +62,7 @@ private:
 		uint8_t value;
 		uint8_t palette;
 		uint8_t priority;
+		uint8_t spriteN;
 	};
 
 	void generatePixel(uint8_t x, uint8_t y);
