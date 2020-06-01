@@ -53,6 +53,8 @@ bool NESPPU::tick()
 
 		if (isPreRenderLine && curX == 1) {
 			ppuStatus &= ~(PPUSTATUS_SPRITE_ZERO_HIT | PPUSTATUS_VBLANK | PPUSTATUS_SPRITE_OVERFLOW);
+			scrollX = ppuScroll[0];
+			scrollY = ppuScroll[1];
 		}
 	}
 
@@ -191,6 +193,8 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 			}
 			ppuAddrIdx = 1 - ppuAddrIdx;
 		}
+		ppuScroll[0] = 0;
+		ppuScroll[1] = 0;
 		break;
 	case 0x2007:
 		writeByte(ppuAddr, value);
@@ -248,12 +252,16 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	
 	// Get current tile from nametable
 	// TODO: this should be pre-fetched
-	const uint16_t nameTableAddress = (ppuCtrl & PPUCTRL_BASE_NAMETABLE_ADDRESS) ? 0x2400 : 0x2000;
-	const uint8_t tileX = x >> 3;
-	const uint8_t tileY = y >> 3;
-	const uint8_t pixelXinTile = x & 0x7;
-	const uint8_t pixelYinTile = y & 0x7;
-	const uint8_t curTile = addressSpace->readDirect(nameTableAddress + tileX + (tileY << 5));
+	const uint16_t nameTableAddress = 0x2000 | ((ppuCtrl & PPUCTRL_BASE_NAMETABLE_ADDRESS) * 0x400);
+	const uint8_t sx = x + scrollX;
+	const uint8_t sy = y + scrollY;
+	const uint8_t tileXTotal = sx >> 3;
+	const uint8_t tilePage = (tileXTotal / 32) % 2;
+	const uint8_t tileX = tileXTotal % 32;
+	const uint8_t tileY = sy >> 3;
+	const uint8_t pixelXinTile = sx & 0x7;
+	const uint8_t pixelYinTile = sy & 0x7;
+	const uint8_t curTile = addressSpace->readDirect(nameTableAddress + tileX + (tileY << 5) + (tilePage * 0x400));
 
 	// Read tile data
 	const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
