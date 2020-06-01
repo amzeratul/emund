@@ -52,7 +52,7 @@ bool NESPPU::tick()
 		}
 
 		if (isPreRenderLine && curX == 1) {
-			ppuStatus &= ~PPUSTATUS_SPRITE_ZERO_HIT;
+			ppuStatus &= ~(PPUSTATUS_SPRITE_ZERO_HIT | PPUSTATUS_VBLANK | PPUSTATUS_SPRITE_OVERFLOW);
 		}
 	}
 
@@ -79,7 +79,6 @@ bool NESPPU::tick()
 		if (curY == 262) {
 			frameN++;
 			curY = 0;
-			ppuStatus &= ~PPUSTATUS_VBLANK;
 		}
 	}
 	
@@ -143,7 +142,8 @@ uint8_t NESPPU::readRegister(uint16_t address)
 		return oamData[oamAddr];
 	case 0x2007:
 		{
-			const uint8_t value = readByte(ppuAddr);
+			const uint8_t value = ppuDataBuffer;
+			ppuDataBuffer = readByte(ppuAddr);
 			ppuAddr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
 			return value;
 		}
