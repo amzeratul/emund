@@ -23,11 +23,21 @@ void GameStage::init()
 	nes->loadROM(std::move(rom));
 
 	setupScreen();
+	setupInput();
 }
 
-void GameStage::onFixedUpdate(Time)
+void GameStage::onVariableUpdate(Time t)
 {
-	nes->tickFrame();
+	input->update(t);
+}
+
+void GameStage::onFixedUpdate(Time t)
+{
+	NESInputJoystick joy0;
+	NESInputJoystick joy1;
+	fillInput(*input, joy0);
+	
+	nes->tickFrame(joy0, joy1);
 	generateFrame(nes->getFrameBuffer());
 }
 
@@ -78,4 +88,29 @@ void GameStage::setupScreen()
 		.setMaterial(material)
 		.setPosition(Vector2f(0, 0))
 		.setSize(Vector2f(textureSize));
+}
+
+void GameStage::setupInput()
+{
+	auto kb = getInputAPI().getKeyboard();
+	
+	input = std::make_shared<InputVirtual>(4, 2);
+	input->bindButton(0, kb, Keys::A); // A
+	input->bindButton(1, kb, Keys::B); // B
+	input->bindButton(2, kb, Keys::Space); // Select
+	input->bindButton(3, kb, Keys::Enter); // Enter
+	input->bindAxisButton(0, kb, Keys::Left, Keys::Right);
+	input->bindAxisButton(1, kb, Keys::Down, Keys::Up);
+}
+
+void GameStage::fillInput(InputDevice& src, NESInputJoystick& dst)
+{
+	dst.left = (src.getAxis(0) < -0.5f) ? 1 : 0;
+	dst.right = (src.getAxis(0) > 0.5f) ? 1 : 0;
+	dst.down = (src.getAxis(1) < -0.5f) ? 1 : 0;
+	dst.up = (src.getAxis(1) > 0.5f) ? 1 : 0;
+	dst.a = src.isButtonDown(0);
+	dst.b = src.isButtonDown(1);
+	dst.select = src.isButtonDown(2);
+	dst.start = src.isButtonDown(3);
 }

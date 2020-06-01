@@ -2,6 +2,7 @@
 
 #include <halley.hpp>
 
+struct NESInputJoystick;
 using namespace Halley;
 
 class NESMachine;
@@ -13,6 +14,7 @@ public:
 	
 	void init() override;
 
+	void onVariableUpdate(Time) override;
 	void onFixedUpdate(Time) override;
 	void onRender(RenderContext&) const override;
 
@@ -21,7 +23,10 @@ private:
 
 	Sprite screen;
 	std::shared_ptr<Texture> texture;
+	std::shared_ptr<InputVirtual> input;
 
 	void generateFrame(gsl::span<const uint32_t> frameBuffer);
 	void setupScreen();
+	void setupInput();
+	void fillInput(InputDevice& src, NESInputJoystick& dst);
 };

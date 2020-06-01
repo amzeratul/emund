@@ -9,6 +9,35 @@
 
 using namespace Halley;
 
+NESInputJoystick::NESInputJoystick()
+{
+	clear();
+}
+
+uint8_t NESInputJoystick::toBits() const
+{
+	return (a << 0)
+		| (b << 1)
+		| (select << 2)
+		| (start << 3)
+		| (up << 4)
+		| (down << 5)
+		| (left << 6)
+		| (right << 7);
+}
+
+void NESInputJoystick::clear()
+{
+	a = 0;
+	b = 0;
+	select = 0;
+	start = 0;
+	up = 0;
+	down = 0;
+	left = 0;
+	right = 0;
+}
+
 NESMachine::NESMachine()
 {
 	frameBuffer.resize(256 * 240);
@@ -55,7 +84,7 @@ void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 	running = true;
 }
 
-void NESMachine::tickFrame()
+void NESMachine::tickFrame(NESInputJoystick joy0, NESInputJoystick joy1)
 {
 	/*
 	const uint32_t masterClockCycles = 357366;
@@ -86,13 +115,33 @@ void NESMachine::tickFrame()
 			reportCPUError();
 			return;
 		}
+
+		// Latch input
+		if (inputLatch & 1) {
+			port0 = joy0.toBits();
+			port1 = joy1.toBits();
+		}
 	}
 }
 
 uint8_t NESMachine::readRegister(uint16_t address)
 {
-	// TODO
-	return 0;
+	switch (address) {
+	case 0x4016:
+		{
+			const uint8_t value = (port0 & 1);
+			port0 = (port0 >> 1) | 0x80;
+			return value;
+		}
+	case 0x4017:
+		{
+			const uint8_t value = (port1 & 1);
+			port1 = (port1 >> 1) | 0x80;
+			return value;
+		}
+	default:
+		return 0;
+	}
 }
 
 void NESMachine::writeRegister(uint16_t address, uint8_t value)
@@ -188,11 +237,7 @@ void NESMachine::writeRegister(uint16_t address, uint8_t value)
 	    break;
 	case 0x4016:
 		// JOY1
-	    // TODO
-	    break;
-	case 0x4017:
-		// JOY2
-	    // TODO
+	    inputLatch = value & 0x7;
 	    break;
 	}
 }

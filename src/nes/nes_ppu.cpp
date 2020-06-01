@@ -203,8 +203,8 @@ gsl::span<uint8_t> NESPPU::getOAMData()
 
 void NESPPU::generatePixel(uint8_t x, uint8_t y)
 {
-	auto bg = (ppuMask & PPUMASK_SHOW_BACKGROUND) ? generateBackground(x, y) : PixelOutput { 0, 0, 0 };
-	auto sprite = (ppuMask & PPUMASK_SHOW_SPRITES) ? generateSprite(x, y) : PixelOutput { 0, 0, 0 };
+	auto bg = generateBackground(x, y);
+	auto sprite = generateSprite(x, y);
 
 	PixelOutput result;
 	if (sprite.value != 0 && bg.value != 0) {
@@ -217,7 +217,7 @@ void NESPPU::generatePixel(uint8_t x, uint8_t y)
 	} else if (bg.value != 0) {
 		result = bg;
 	} else {
-		result = { bg.value, 0 };
+		result = { bg.value, 0, 0, 0 };
 	}
 	
 	const uint8_t colour = addressSpace->readDirect(0x3F00 + 4 * result.palette + result.value);
@@ -227,6 +227,10 @@ void NESPPU::generatePixel(uint8_t x, uint8_t y)
 
 NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 {
+	if (!(ppuMask & PPUMASK_SHOW_BACKGROUND) || (x < 8 && !(ppuMask & PPUMASK_SHOW_BACKGROUND_LEFT))) {
+		return PixelOutput { 0, 0, 0, 0 };
+	}
+	
 	// Get current tile from nametable
 	// TODO: this should be pre-fetched
 	const uint16_t nameTableAddress = (ppuCtrl & PPUCTRL_BASE_NAMETABLE_ADDRESS) ? 0x2400 : 0x2000;
@@ -256,6 +260,10 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 
 NESPPU::PixelOutput NESPPU::generateSprite(uint8_t x, uint8_t y)
 {
+	if (!(ppuMask & PPUMASK_SHOW_SPRITES) || (x < 8 && !(ppuMask & PPUMASK_SHOW_SPRITES_LEFT))) {
+		return PixelOutput { 0, 0, 0, 0 };
+	}
+	
 	auto result = PixelOutput { 0, 0, 0, 0 };
 	for (size_t i = 0; i < 8; ++i) {
 		if (spriteData[i].x > 0) {
