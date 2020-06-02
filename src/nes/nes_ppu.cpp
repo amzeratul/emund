@@ -1,6 +1,8 @@
 #include "nes_ppu.h"
-
 #include "src/cpu/address_space.h"
+
+#include <halley.hpp>
+using namespace Halley;
 
 constexpr static uint8_t PPUCTRL_BASE_NAMETABLE_ADDRESS = 0x03;
 constexpr static uint8_t PPUCTRL_VRAM_ADDRESS = 0x4;
@@ -50,12 +52,11 @@ bool NESPPU::tick()
 		if (curX >= 257 && curX <= 320) {
 			oamAddr = 0;
 		}
-
-		if (isPreRenderLine && curX == 1) {
-			ppuStatus &= ~(PPUSTATUS_SPRITE_ZERO_HIT | PPUSTATUS_VBLANK | PPUSTATUS_SPRITE_OVERFLOW);
-			scrollX = ppuScroll[0];
-			scrollY = ppuScroll[1];
-		}
+	}
+	
+	if (isPreRenderLine && curX == 1) {
+		ppuStatus &= ~(PPUSTATUS_SPRITE_ZERO_HIT | PPUSTATUS_VBLANK | PPUSTATUS_SPRITE_OVERFLOW);
+		scrollY = ppuScroll[1];
 	}
 
 	// Last scanline on odd fields is shorter
@@ -145,7 +146,7 @@ uint8_t NESPPU::readRegister(uint16_t address)
 	case 0x2007:
 		{
 			const uint8_t value = ppuDataBuffer;
-			ppuDataBuffer = readByte(ppuAddr);
+			ppuDataBuffer = readByte(ppuAddr & 0x3FFF);
 			ppuAddr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
 			return value;
 		}
@@ -197,7 +198,7 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		ppuScroll[1] = 0;
 		break;
 	case 0x2007:
-		writeByte(ppuAddr, value);
+		writeByte(ppuAddr & 0x3FFF, value);
 		ppuAddr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
 		break;
 	default:
@@ -252,30 +253,30 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	
 	// Get current tile from nametable
 	// TODO: this should be pre-fetched
-	const uint16_t nameTableAddress = 0x2000 | ((ppuCtrl & PPUCTRL_BASE_NAMETABLE_ADDRESS) * 0x400);
-	const uint8_t sx = x + scrollX;
-	const uint8_t sy = y + scrollY;
-	const uint8_t tileXTotal = sx >> 3;
-	const uint8_t tilePage = (tileXTotal / 32) % 2;
-	const uint8_t tileX = tileXTotal % 32;
-	const uint8_t tileY = sy >> 3;
-	const uint8_t pixelXinTile = sx & 0x7;
-	const uint8_t pixelYinTile = sy & 0x7;
-	const uint8_t curTile = addressSpace->readDirect(nameTableAddress + tileX + (tileY << 5) + (tilePage * 0x400));
+	const uint8_t fineX = (x + ppuScroll[0]) & 0x7;
+	const uint8_t fineY = (y + scrollY) & 0x7;
+	const uint8_t coarseX = (x + ppuScroll[0]) >> 3;
+	const uint8_t coarseY = (y + scrollY) >> 3;
+	const uint8_t tilePage = (coarseX / 32) % 2;
+	const uint8_t pageX = coarseX % 32;
+	const uint8_t pageY = coarseY % 30;
+
+	const uint16_t nameTableAddress = 0x2000 | ((ppuCtrl & PPUCTRL_BASE_NAMETABLE_ADDRESS) * 0x400 + (tilePage * 0x400));
+	const uint8_t curTile = addressSpace->readDirect(nameTableAddress + pageX + (pageY << 5));
 
 	// Read tile data
 	const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
-	const uint8_t plane0 = addressSpace->read(patternTable + (curTile * 16) + pixelYinTile);
-	const uint8_t plane1 = addressSpace->read(patternTable + (curTile * 16) + pixelYinTile + 8);
-	const uint8_t tileXBit = 1 << (7 - pixelXinTile);
+	const uint8_t plane0 = addressSpace->read(patternTable + (curTile * 16) + fineY);
+	const uint8_t plane1 = addressSpace->read(patternTable + (curTile * 16) + fineY + 8);
+	const uint8_t tileXBit = 1 << (7 - fineX);
 	const uint8_t value = ((plane0 & tileXBit) != 0 ? 1 : 0) + ((plane1 & tileXBit) != 0 ? 2 : 0);
 
 	// Read attribute
 	// TODO: this should also be pre-fetched
 	const uint16_t attributeTableAddress = nameTableAddress + 0x3C0;
-	const uint16_t attributeEntry = attributeTableAddress + (tileX / 4) + (tileY / 4) * 8;
+	const uint16_t attributeEntry = attributeTableAddress + (pageX / 4) + (pageY / 4) * 8;
 	const uint8_t attributeTableValue = addressSpace->readDirect(attributeEntry);
-	const uint8_t paletteOffset = (tileX & 0x2) | ((tileY & 0x2) << 1);
+	const uint8_t paletteOffset = (pageX & 0x2) | ((pageY & 0x2) << 1);
 	const uint8_t paletteEntry = (attributeTableValue >> paletteOffset) & 0x3;
 
 	return { value, paletteEntry };

@@ -42,7 +42,6 @@ private:
 
 	uint8_t ppuScroll[2];
 	uint8_t ppuScrollIdx = 0;
-	uint8_t scrollX = 0;
 	uint8_t scrollY = 0;
 
 	uint16_t ppuAddr;
