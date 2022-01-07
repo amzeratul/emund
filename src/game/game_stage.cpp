@@ -16,6 +16,10 @@ void GameStage::init()
 	//const char* path = "d:/Emulation/ROMs/NES/Balloon Fight (USA).nes";
 	
 	const auto bytes = Path::readFile(Path(path));
+	if (bytes.empty()) {
+		throw Exception("Rom not found: " + toString(path), 0);
+	}
+	
 	auto rom = std::make_unique<NESRom>();
 	rom->load(gsl::span(reinterpret_cast<const std::byte*>(bytes.data()), bytes.size()));
 

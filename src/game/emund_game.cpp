@@ -29,7 +29,7 @@ int HalleyGame::initPlugins(IPluginRegistry& registry)
 	return HalleyAPIFlags::Video | HalleyAPIFlags::Audio | HalleyAPIFlags::Input | HalleyAPIFlags::Network | HalleyAPIFlags::Platform;
 }
 
-void HalleyGame::initResourceLocator(const Path& gamePath, const Path& assetsPath, const Path& unpackedAssetsPath, ResourceLocator& locator) {
+ResourceOptions HalleyGame::initResourceLocator(const Path& gamePath, const Path& assetsPath, const Path& unpackedAssetsPath, ResourceLocator& locator) {
 	constexpr bool localAssets = true;
 	if (localAssets) {
 		locator.addFileSystem(unpackedAssetsPath);
@@ -39,6 +39,7 @@ void HalleyGame::initResourceLocator(const Path& gamePath, const Path& assetsPat
 			locator.addPack(Path(assetsPath) / pack);
 		}
 	}
+	return {};
 }
 
 String HalleyGame::getName() const

@@ -21,3 +21,4 @@ linux_bin/
 res/*.aps
 .vs/
 src/build_version.h
+halley_deps
