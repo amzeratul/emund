@@ -102,7 +102,7 @@ void GameStage::setupInput()
 	
 	input = std::make_shared<InputVirtual>(4, 2);
 	input->bindButton(0, kb, Keys::A); // A
-	input->bindButton(1, kb, Keys::B); // B
+	input->bindButton(1, kb, Keys::S); // B
 	input->bindButton(2, kb, Keys::Space); // Select
 	input->bindButton(3, kb, Keys::Enter); // Enter
 	input->bindAxisButton(0, kb, Keys::Left, Keys::Right);

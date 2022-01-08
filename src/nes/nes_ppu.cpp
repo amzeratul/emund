@@ -40,6 +40,7 @@ using RegisterTileAddress = BitView<uint16_t, 0, 12>;
 using RegisterAddress = BitView<uint16_t, 0, 14>;
 using RegisterAddressHigh = BitView<uint16_t, 8, 6>;
 using RegisterAddressLow = BitView<uint16_t, 0, 8>;
+using RegisterAddressHighBit = BitView<uint16_t, 14, 1>;
 
 using CtrlNametableSelect = BitView<uint8_t, 0, 2>;
 
@@ -47,7 +48,7 @@ using ParFineScroll = BitView<uint8_t, 0, 3>;
 using ParCoarseScroll = BitView<uint8_t, 3, 5>;
 
 using ShiftRegisterTop = BitView<uint16_t, 8, 8>;
-using ShiftRegisterBottom = BitView<uint16_t, 0, 1>;
+using ShiftRegisterBottom = BitView<uint16_t, 0, 8>;
 
 
 NESPPU::NESPPU()
@@ -61,12 +62,13 @@ bool NESPPU::tick()
 {
 	const bool isPreRenderLine = curY == 261;
 	const bool isVisibleLine = curY < 240;
+	const bool rendering = isRendering();
 
 	if (isVisibleLine && curX > 0 && curX <= 256) {
 		generatePixel(curX - 1, curY);
 	}
-
-	if (isVisibleLine) {
+	
+	if (rendering) {
 		tickSpriteFetch();
 		tickBackgroundFetch();
 	}
@@ -82,15 +84,20 @@ bool NESPPU::tick()
 		ppuStatus &= ~(PPUSTATUS_SPRITE_ZERO_HIT | PPUSTATUS_VBLANK | PPUSTATUS_SPRITE_OVERFLOW);
 	}
 
-	if (isVisibleLine) {
-		if (curX == 257) {
+	if (rendering) {
+		if (curX % 8 == 0 && ((curX >= 8 && curX <= 256) || curX >= 328)) {
+			incrementHorizontalPos();
+		}
+		if (curX == 256) {
+			incrementVerticalPos();
+		} else if (curX == 257) {
 			// Update horizontal scroll
 			RegisterCoarseX::of(vRegister).set(RegisterCoarseX::of(tRegister));
 			RegisterNametableSelectX::of(vRegister).set(RegisterNametableSelectX::of(tRegister));
 		}
 	}
 
-	if (isPreRenderLine && curX >= 280 && curX < 304) {
+	if (isPreRenderLine && curX >= 280 && curX <= 304) {
 		// Update vertical scroll
 		RegisterCoarseY::of(vRegister).set(RegisterCoarseY::of(tRegister));
 		RegisterFineY::of(vRegister).set(RegisterFineY::of(tRegister));
@@ -263,6 +270,7 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		if (isReady) {
 			if (!wRegister) {
 				RegisterAddressHigh(tRegister).set(value);
+				RegisterAddressHighBit(tRegister).set(uint8_t(0));
 			} else {
 				RegisterAddressLow(tRegister).set(value);
 				vRegister = tRegister;
@@ -518,12 +526,7 @@ void NESPPU::tickBackgroundFetch()
 {
 	// Background fetching
 	if ((curX >= 1 && curX < 257) || curX >= 321) {
-		if (curX % 8 == 0) {
-			incrementHorizontalPos();
-			if (curX == 256) {
-				incrementVerticalPos();
-			}
-		} else if (curX % 8 == 1) {
+		if (curX % 8 == 1) {
 			nameTableLatch = readByte(RegisterTileAddress(vRegister).getValue() | 0x2000);
 		} else if (curX % 8 == 3) {
 			const uint16_t addr = 0x23C0 | (vRegister & 0x0C00) | ((vRegister >> 4) & 0x38) | ((vRegister >> 2) & 0x07);
