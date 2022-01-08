@@ -336,12 +336,16 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	}
 
 	// Fetch data from registers
-	auto select = [&](auto v) -> uint8_t
+	auto selectPattern = [&](uint16_t v) -> uint8_t
+	{
+		return static_cast<uint8_t>((v >> (15 - xRegister)) & 1);
+	};
+	auto selectAttribute = [&](uint8_t v) -> uint8_t
 	{
 		return static_cast<uint8_t>((v >> xRegister) & 1);
-	};	
-	const uint8_t value = (select(patternTableHighShiftRegister) << 1) | select(patternTableLowShiftRegister);
-	const uint8_t paletteEntry = (select(attributeHighShiftRegister) << 1) | select(attributeLowShiftRegister);
+	};
+	const uint8_t value = (selectPattern(patternTableHighShiftRegister) << 1) | selectPattern(patternTableLowShiftRegister);
+	const uint8_t paletteEntry = (selectAttribute(attributeHighShiftRegister) << 1) | selectAttribute(attributeLowShiftRegister);
 
 	// Shift registers
 	auto shiftAndLoad = [](uint8_t& shiftRegister, uint8_t data)
@@ -350,8 +354,8 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	};
 	shiftAndLoad(attributeHighShiftRegister, (attributeLatch & 0x2) >> 1);
 	shiftAndLoad(attributeLowShiftRegister, attributeLatch & 0x1);
-	patternTableHighShiftRegister >>= 1;
-	patternTableLowShiftRegister >>= 1;
+	patternTableHighShiftRegister <<= 1;
+	patternTableLowShiftRegister <<= 1;
 
 	return { value, paletteEntry, 0, 0 };
 }
@@ -552,8 +556,8 @@ void NESPPU::tickBackgroundFetch()
 			// Load shift registers
 			attributeHighShiftRegister = (attributeLatch % 4 == 2) ? 0xFF : 0x00;
 			attributeLowShiftRegister = (attributeLatch % 2 == 1) ? 0xFF : 0x00;
-			ShiftRegisterTop(patternTableHighShiftRegister).set(patternTableHighLatch);
-			ShiftRegisterTop(patternTableLowShiftRegister).set(patternTableLowLatch);
+			ShiftRegisterBottom(patternTableHighShiftRegister).set(patternTableHighLatch);
+			ShiftRegisterBottom(patternTableLowShiftRegister).set(patternTableLowLatch);
 		}
 	}
 }
