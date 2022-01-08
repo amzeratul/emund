@@ -28,11 +28,18 @@ void GameStage::init()
 
 	setupScreen();
 	setupInput();
+
+	perfView = std::make_shared<PerformanceStatsView>(getResources(), getAPI());
 }
 
 void GameStage::onVariableUpdate(Time t)
 {
 	input->update(t);
+
+	if (getInputAPI().getKeyboard()->isButtonPressed(Keys::F2)) {
+		perfView->setActive(!perfView->isActive());
+	}
+	perfView->update();
 }
 
 void GameStage::onFixedUpdate(Time t)
@@ -63,6 +70,8 @@ void GameStage::onRender(RenderContext& rc) const
 				.setPosition(windowSize * 0.5f)
 				.draw(painter);
 		}
+
+		//perfView->paint(painter);
 	});
 }
 

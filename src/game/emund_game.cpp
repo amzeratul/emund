@@ -44,7 +44,7 @@ ResourceOptions HalleyGame::initResourceLocator(const Path& gamePath, const Path
 
 String HalleyGame::getName() const
 {
-	return "EMUnd Halley";
+	return "EMUnd/Halley";
 }
 
 String HalleyGame::getDataPath() const
@@ -61,7 +61,7 @@ std::unique_ptr<Stage> HalleyGame::startGame()
 {
 	bool vsync = true;
 
-	getAPI().video->setWindow(WindowDefinition(WindowType::Window, Vector2i(1280, 720), getName()));
+	getAPI().video->setWindow(WindowDefinition(WindowType::Window, Vector2i(768, 720), getName()));
 	getAPI().video->setVsync(vsync);
 	getAPI().audio->startPlayback();
 	return std::make_unique<GameStage>();

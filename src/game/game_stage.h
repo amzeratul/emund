@@ -25,6 +25,8 @@ private:
 	std::shared_ptr<Texture> texture;
 	std::shared_ptr<InputVirtual> input;
 
+	std::shared_ptr<PerformanceStatsView> perfView;
+
 	void generateFrame(gsl::span<const uint32_t> frameBuffer);
 	void setupScreen();
 	void setupInput();
