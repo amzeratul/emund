@@ -536,7 +536,7 @@ void NESPPU::tickBackgroundFetch()
 	}
 
 	// Shift registers
-	if ((curX >= 2 && curX < 257) || curX >= 322) {
+	if ((curX >= 1 && curX < 257) || (curX >= 322 && curX <= 336)) {
 		if (curX % 8 == 1) {
 			// Load shift registers
 			attributeLatchBit = attributeLatch & 3;
