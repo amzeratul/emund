@@ -39,14 +39,13 @@ private:
 	uint8_t ppuStatus = 0;
 	uint8_t ppuCtrl = 0;
 	uint8_t ppuMask = 0;
+	
+	uint16_t register_v = 0; // Current vram address, 15 bit, 
+	uint16_t register_t = 0; // Temporary vram address, same as above
+	uint8_t register_x = 0; // Fine x scroll, 3 bits
+	bool register_w = false; // Address latch, 1 bit, toggles between 0 and 1, used by $2005 and $2006, reset by $2002
 
-	uint8_t ppuScroll[2];
-	uint8_t ppuScrollIdx = 0;
-	uint8_t scrollY = 0;
-
-	uint16_t ppuAddr;
 	uint8_t ppuDataBuffer = 0;
-	uint8_t ppuAddrIdx = 0;
 
 	uint8_t oamAddr = 0;
 

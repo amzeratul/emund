@@ -2,6 +2,8 @@
 #include "src/cpu/address_space.h"
 
 #include <halley.hpp>
+
+#include "src/utils/bit_view.h"
 using namespace Halley;
 
 constexpr static uint8_t PPUCTRL_BASE_NAMETABLE_ADDRESS = 0x03;
@@ -24,6 +26,24 @@ constexpr static uint8_t PPUMASK_SHOW_SPRITES = 0x10;
 constexpr static uint8_t PPUMASK_EMPHASIZE_RED = 0x20;
 constexpr static uint8_t PPUMASK_EMPHASIZE_GREEN = 0x40;
 constexpr static uint8_t PPUMASK_EMPHASIZE_BLUE = 0x80;
+
+
+using RegisterCoarseX = BitView<uint16_t, 0, 4>;
+using RegisterCoarseY = BitView<uint16_t, 5, 9>;
+using RegisterNametableSelect = BitView<uint16_t, 10, 11>;
+using RegisterNametableSelectX = BitView<uint16_t, 10, 10>;
+using RegisterNametableSelectY = BitView<uint16_t, 11, 11>;
+using RegisterFineY = BitView<uint16_t, 12, 14>;
+using RegisterFineX = BitView<uint8_t, 0, 2>;
+
+using RegisterAddress = BitView<uint16_t, 0, 14>;
+using RegisterAddressHigh = BitView<uint16_t, 8, 14>;
+using RegisterAddressLow = BitView<uint16_t, 0, 7>;
+
+using CtrlNametableSelect = BitView<uint8_t, 0, 1>;
+
+using ParFineScroll = BitView<uint8_t, 0, 2>;
+using ParCoarseScroll = BitView<uint8_t, 3, 7>;
 
 
 NESPPU::NESPPU()
@@ -56,7 +76,23 @@ bool NESPPU::tick()
 	
 	if (isPreRenderLine && curX == 1) {
 		ppuStatus &= ~(PPUSTATUS_SPRITE_ZERO_HIT | PPUSTATUS_VBLANK | PPUSTATUS_SPRITE_OVERFLOW);
-		scrollY = ppuScroll[1];
+	}
+
+	if (isVisibleLine) {
+		if (curX == 256) {
+			// Increment vertical position
+		} else if (curX == 257) {
+			// Update horizontal scroll
+			RegisterCoarseX::of(register_v).set(RegisterCoarseX::of(register_t));
+			RegisterNametableSelectX::of(register_v).set(RegisterNametableSelectX::of(register_t));
+		}
+	}
+
+	if (isPreRenderLine && curX >= 280 && curX < 304) {
+		// Update vertical scroll
+		RegisterCoarseY::of(register_v).set(RegisterCoarseY::of(register_t));
+		RegisterFineY::of(register_v).set(RegisterFineY::of(register_t));
+		RegisterNametableSelectY::of(register_v).set(RegisterNametableSelectY::of(register_t));
 	}
 
 	// Last scanline on odd fields is shorter
@@ -133,8 +169,7 @@ uint8_t NESPPU::readRegister(uint16_t address)
 		{
 			const uint8_t value = ppuStatus;
 			ppuStatus &= ~PPUSTATUS_VBLANK;
-			ppuScrollIdx = 0; // Should I do this here?
-			ppuAddr = 0;
+			register_w = false;
 			return value;
 		}
 	case 0x2004:
@@ -146,8 +181,9 @@ uint8_t NESPPU::readRegister(uint16_t address)
 	case 0x2007:
 		{
 			const uint8_t value = ppuDataBuffer;
-			ppuDataBuffer = readByte(ppuAddr & 0x3FFF);
-			ppuAddr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
+			RegisterAddress ppuAddr(register_v);
+			ppuDataBuffer = readByte(ppuAddr.getValue());
+			ppuAddr += static_cast<uint16_t>((ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1);
 			return value;
 		}
 	default:
@@ -164,6 +200,7 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 	case 0x2000:
 		if (isReady) {
 			ppuCtrl = value;
+			RegisterNametableSelect(register_t).set(CtrlNametableSelect(value));
 		}
 		break;
 	case 0x2001:
@@ -181,25 +218,36 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		break;
 	case 0x2005:
 		if (isReady) {
-			ppuScroll[ppuScrollIdx] = value;
-			ppuScrollIdx = 1 - ppuScrollIdx;
+			if (!register_w) {
+				RegisterCoarseX(register_t).set(ParCoarseScroll(value));
+				RegisterFineX(register_x).set(ParFineScroll(value));
+			} else {
+				RegisterCoarseY(register_t).set(ParCoarseScroll(value));
+				RegisterFineY(register_t).set(ParFineScroll(value));
+			}
+			register_w = !register_w;
 		}
 		break;
 	case 0x2006:
+		//Logger::logInfo("$2006 <- " + toString(int(value), 16, 2, '0'));
 		if (isReady) {
-			if (ppuAddrIdx == 0) {
-				ppuAddr = (ppuAddr & 0x00FF) | ((static_cast<uint16_t>(value) << 8) & 0x3F00);
+			if (!register_w) {
+				RegisterAddressHigh(register_t).set(value);
 			} else {
-				ppuAddr = (ppuAddr & 0xFF00) | value;
+				RegisterAddressLow(register_t).set(value);
+				register_v = register_t;
 			}
-			ppuAddrIdx = 1 - ppuAddrIdx;
+			register_w = !register_w;
 		}
-		ppuScroll[0] = 0;
-		ppuScroll[1] = 0;
 		break;
 	case 0x2007:
-		writeByte(ppuAddr & 0x3FFF, value);
-		ppuAddr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
+		{
+			//Logger::logInfo("$2007 <- " + toString(int(value), 16, 2, '0'));
+			auto addr = RegisterAddress(register_v);
+			writeByte(addr.getValue() & 0x3FFF, value);
+			//Logger::logDev(toString(addr.getValue(), 16, 4, '0') + " = " + toString(int(value), 16, 2, '0'));
+			addr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
+		}
 		break;
 	default:
 		throw std::exception();
@@ -253,16 +301,17 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	
 	// Get current tile from nametable
 	// TODO: this should be pre-fetched
-	const uint8_t fineX = (x + ppuScroll[0]) & 0x7;
-	const uint8_t fineY = (y + scrollY) & 0x7;
-	const uint8_t coarseX = (x + ppuScroll[0]) >> 3;
-	const uint8_t coarseY = (y + scrollY) >> 3;
+	const uint8_t fineX = (x + register_x) & 0x7;
+	const uint8_t fineY = (y + RegisterFineY(register_v).getValue()) & 0x7;
+	const uint8_t coarseX = (x >> 3) + RegisterCoarseX(register_v).getValue();
+	const uint8_t coarseY = (y >> 3) + RegisterCoarseY(register_v).getValue();
 	const uint8_t tilePage = (coarseX / 32) % 2;
 	const uint8_t pageX = coarseX % 32;
 	const uint8_t pageY = coarseY % 30;
 
-	const uint16_t nameTableAddress = 0x2000 | ((ppuCtrl & PPUCTRL_BASE_NAMETABLE_ADDRESS) * 0x400 + (tilePage * 0x400));
-	const uint8_t curTile = addressSpace->readDirect(nameTableAddress + pageX + (pageY << 5));
+	const uint16_t nameTableAddress = 0x2000 | (((RegisterNametableSelect(register_v).getValue() + tilePage) & 3) * 0x400);
+	const uint16_t tileAddress = nameTableAddress + pageX + (pageY << 5);
+	const uint8_t curTile = addressSpace->readDirect(tileAddress);
 
 	// Read tile data
 	const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;

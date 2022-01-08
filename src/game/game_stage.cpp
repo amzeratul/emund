@@ -10,9 +10,9 @@ GameStage::~GameStage() = default;
 void GameStage::init()
 {
 	//const char* path = "d:/Emulation/ROMs/NES/nestest.nes";
-	const char* path = "d:/Emulation/ROMs/NES/Donkey Kong (World) (Rev 1).nes";
+	//const char* path = "C:/Emulation/ROMs/NES/Donkey Kong (World) (Rev A).nes";
 	//const char* path = "d:/Emulation/ROMs/NES/Mega Man 2 (USA).nes";
-	//const char* path = "d:/Emulation/ROMs/NES/Super Mario Bros. (World) (HVC-SM).nes";
+	const char* path = "C:/Emulation/ROMs/NES/Super Mario Bros. (World).nes";
 	//const char* path = "d:/Emulation/ROMs/NES/Balloon Fight (USA).nes";
 	
 	const auto bytes = Path::readFile(Path(path));
@@ -86,10 +86,12 @@ void GameStage::setupScreen()
 	texture->load(std::move(texDesc));
 
 	auto material = std::make_shared<Material>(getResources().get<MaterialDefinition>("Halley/SpriteOpaque"));
-	material->set("tex0", texture);
+	material->set(0, texture);
 
 	screen
 		.setMaterial(material)
+		.setTexRect0(Rect4f(0, 0, 1, 1))
+		.setColour(Colour4f(1, 1, 1, 1))
 		.setPosition(Vector2f(0, 0))
 		.setSize(Vector2f(textureSize));
 }

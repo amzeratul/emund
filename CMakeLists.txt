@@ -42,6 +42,7 @@ set (HEADERS
 	"src/nes/nes_rom.h"
 	"src/nes/nes_ppu.h"
 
+	"src/utils/bit_view.h"
 	"src/utils/macros.h"
 	)
 
