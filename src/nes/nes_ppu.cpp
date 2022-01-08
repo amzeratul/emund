@@ -28,22 +28,23 @@ constexpr static uint8_t PPUMASK_EMPHASIZE_GREEN = 0x40;
 constexpr static uint8_t PPUMASK_EMPHASIZE_BLUE = 0x80;
 
 
-using RegisterCoarseX = BitView<uint16_t, 0, 4>;
-using RegisterCoarseY = BitView<uint16_t, 5, 9>;
-using RegisterNametableSelect = BitView<uint16_t, 10, 11>;
-using RegisterNametableSelectX = BitView<uint16_t, 10, 10>;
-using RegisterNametableSelectY = BitView<uint16_t, 11, 11>;
-using RegisterFineY = BitView<uint16_t, 12, 14>;
-using RegisterFineX = BitView<uint8_t, 0, 2>;
+using RegisterCoarseX = BitView<uint16_t, 0, 5>;
+using RegisterCoarseY = BitView<uint16_t, 5, 5>;
+using RegisterNametableSelect = BitView<uint16_t, 10, 2>;
+using RegisterNametableSelectX = BitView<uint16_t, 10, 1>;
+using RegisterNametableSelectY = BitView<uint16_t, 11, 1>;
+using RegisterFineY = BitView<uint16_t, 12, 3>;
+using RegisterFineX = BitView<uint8_t, 0, 3>;
+using RegisterTileAddress = BitView<uint16_t, 0, 12>;
 
 using RegisterAddress = BitView<uint16_t, 0, 14>;
-using RegisterAddressHigh = BitView<uint16_t, 8, 14>;
-using RegisterAddressLow = BitView<uint16_t, 0, 7>;
+using RegisterAddressHigh = BitView<uint16_t, 8, 6>;
+using RegisterAddressLow = BitView<uint16_t, 0, 8>;
 
-using CtrlNametableSelect = BitView<uint8_t, 0, 1>;
+using CtrlNametableSelect = BitView<uint8_t, 0, 2>;
 
-using ParFineScroll = BitView<uint8_t, 0, 2>;
-using ParCoarseScroll = BitView<uint8_t, 3, 7>;
+using ParFineScroll = BitView<uint8_t, 0, 3>;
+using ParCoarseScroll = BitView<uint8_t, 3, 5>;
 
 
 NESPPU::NESPPU()
@@ -79,8 +80,11 @@ bool NESPPU::tick()
 	}
 
 	if (isVisibleLine) {
-		if (curX == 256) {
-			// Increment vertical position
+		if (curX % 8 == 0 && ((curX >= 8 && curX <= 256) || curX >= 328)) {
+			incrementHorizontalPos();
+			if (curX == 256) {
+				incrementVerticalPos();
+			}
 		} else if (curX == 257) {
 			// Update horizontal scroll
 			RegisterCoarseX::of(register_v).set(RegisterCoarseX::of(register_t));
@@ -122,6 +126,31 @@ bool NESPPU::tick()
 	}
 	
 	return false;
+}
+
+void NESPPU::incrementHorizontalPos()
+{
+	auto coarseX = RegisterCoarseX(register_v);
+	coarseX += 1;
+	if (coarseX.getValue() == 0) {
+		auto nametable = RegisterNametableSelectX(register_v);
+		nametable.set(uint16_t(1 - nametable.getValue()));
+	}
+}
+
+void NESPPU::incrementVerticalPos()
+{
+	auto fineY = RegisterFineY(register_v);
+	fineY += 1;
+	if (fineY.getValue() == 0) {
+		auto coarseY = RegisterCoarseY(register_v);
+		coarseY += 1;
+		if (coarseY.getValue() == 30) {
+			coarseY.set(uint8_t(0));
+			auto nametable = RegisterNametableSelectY(register_v);
+			nametable.set(uint16_t(1 - nametable.getValue()));
+		}
+	}
 }
 
 uint32_t NESPPU::getX() const
@@ -229,7 +258,6 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		}
 		break;
 	case 0x2006:
-		//Logger::logInfo("$2006 <- " + toString(int(value), 16, 2, '0'));
 		if (isReady) {
 			if (!register_w) {
 				RegisterAddressHigh(register_t).set(value);
@@ -242,10 +270,8 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		break;
 	case 0x2007:
 		{
-			//Logger::logInfo("$2007 <- " + toString(int(value), 16, 2, '0'));
 			auto addr = RegisterAddress(register_v);
-			writeByte(addr.getValue() & 0x3FFF, value);
-			//Logger::logDev(toString(addr.getValue(), 16, 4, '0') + " = " + toString(int(value), 16, 2, '0'));
+			writeByte(addr.getValue(), value);
 			addr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
 		}
 		break;
@@ -276,7 +302,7 @@ void NESPPU::generatePixel(uint8_t x, uint8_t y)
 
 	PixelOutput result;
 	if (sprite.value != 0 && bg.value != 0) {
-		result = sprite.priority == 0 ? sprite : bg;
+		result = sprite.priority == 0 || true ? sprite : bg;
 		if (sprite.spriteN == 0) {
 			ppuStatus |= PPUSTATUS_SPRITE_ZERO_HIT;
 		}
@@ -301,16 +327,17 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	
 	// Get current tile from nametable
 	// TODO: this should be pre-fetched
-	const uint8_t fineX = (x + register_x) & 0x7;
-	const uint8_t fineY = (y + RegisterFineY(register_v).getValue()) & 0x7;
-	const uint8_t coarseX = (x >> 3) + RegisterCoarseX(register_v).getValue();
-	const uint8_t coarseY = (y >> 3) + RegisterCoarseY(register_v).getValue();
+	const uint8_t fineX = uint8_t((RegisterFineX(register_x).getValue() + x) % 8);
+	const uint8_t fineY = uint8_t(RegisterFineY(register_v).getValue());
+	const uint8_t coarseX = uint8_t(RegisterCoarseX(register_v).getValue());
+	const uint8_t coarseY = uint8_t(RegisterCoarseY(register_v).getValue());
 	const uint8_t tilePage = (coarseX / 32) % 2;
 	const uint8_t pageX = coarseX % 32;
 	const uint8_t pageY = coarseY % 30;
 
 	const uint16_t nameTableAddress = 0x2000 | (((RegisterNametableSelect(register_v).getValue() + tilePage) & 3) * 0x400);
 	const uint16_t tileAddress = nameTableAddress + pageX + (pageY << 5);
+	RegisterTileAddress(register_v).set(tileAddress);
 	const uint8_t curTile = addressSpace->readDirect(tileAddress);
 
 	// Read tile data
