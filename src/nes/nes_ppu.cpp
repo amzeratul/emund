@@ -533,6 +533,9 @@ void NESPPU::tickBackgroundFetch()
 				patternTableHighLatch = readByte(addr + 8);
 			}
 		}
+	} else if (curX >= 337 && curX % 2 == 1) {
+		// Redundant nametable read
+		readByte(RegisterTileAddress(vRegister).getValue() | 0x2000);
 	}
 
 	// Shift registers
