@@ -516,7 +516,7 @@ void NESPPU::tickSpriteFetch()
 void NESPPU::tickBackgroundFetch()
 {
 	// Background fetching
-	if ((curX >= 1 && curX < 257) || curX >= 321) {
+	if ((curX >= 1 && curX < 257) || (curX >= 321 && curX <= 336)) {
 		if (curX % 8 == 1) {
 			nameTableLatch = readByte(RegisterTileAddress(vRegister).getValue() | 0x2000);
 		} else if (curX % 8 == 3) {
@@ -536,7 +536,7 @@ void NESPPU::tickBackgroundFetch()
 	}
 
 	// Shift registers
-	if ((curX >= 1 && curX < 257) || (curX >= 322 && curX <= 336)) {
+	if ((curX >= 1 && curX <= 257) || (curX >= 322 && curX <= 336)) {
 		if (curX % 8 == 1) {
 			// Load shift registers
 			attributeLatchBit = attributeLatch & 3;
