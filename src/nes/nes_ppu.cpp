@@ -62,17 +62,11 @@ bool NESPPU::tick()
 {
 	const bool isPreRenderLine = curY == 261;
 	const bool isVisibleLine = curY < 240;
-	const bool rendering = isRendering();
 
 	if (isVisibleLine && curX > 0 && curX <= 256) {
 		generatePixel(curX - 1, curY);
 	}
 	
-	if (rendering) {
-		tickSpriteFetch();
-		tickBackgroundFetch();
-	}
-
 	// Not sure if this is right
 	if (isVisibleLine || isPreRenderLine) {
 		if (curX >= 257 && curX <= 320) {
@@ -84,7 +78,10 @@ bool NESPPU::tick()
 		ppuStatus &= ~(PPUSTATUS_SPRITE_ZERO_HIT | PPUSTATUS_VBLANK | PPUSTATUS_SPRITE_OVERFLOW);
 	}
 
-	if (rendering) {
+	if (isRendering()) {
+		tickSpriteFetch();
+		tickBackgroundFetch();
+
 		if (curX % 8 == 0 && ((curX >= 8 && curX <= 256) || curX >= 328)) {
 			incrementHorizontalPos();
 		}
@@ -95,13 +92,13 @@ bool NESPPU::tick()
 			RegisterCoarseX::of(vRegister).set(RegisterCoarseX::of(tRegister));
 			RegisterNametableSelectX::of(vRegister).set(RegisterNametableSelectX::of(tRegister));
 		}
-	}
 
-	if (isPreRenderLine && curX >= 280 && curX <= 304) {
-		// Update vertical scroll
-		RegisterCoarseY::of(vRegister).set(RegisterCoarseY::of(tRegister));
-		RegisterFineY::of(vRegister).set(RegisterFineY::of(tRegister));
-		RegisterNametableSelectY::of(vRegister).set(RegisterNametableSelectY::of(tRegister));
+		if (isPreRenderLine && curX >= 280 && curX <= 304) {
+			// Update vertical scroll
+			RegisterCoarseY::of(vRegister).set(RegisterCoarseY::of(tRegister));
+			RegisterFineY::of(vRegister).set(RegisterFineY::of(tRegister));
+			RegisterNametableSelectY::of(vRegister).set(RegisterNametableSelectY::of(tRegister));
+		}
 	}
 
 	// Last scanline on odd fields is shorter
@@ -347,16 +344,6 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	const uint8_t value = (selectPattern(patternTableHighShiftRegister) << 1) | selectPattern(patternTableLowShiftRegister);
 	const uint8_t paletteEntry = (selectAttribute(attributeHighShiftRegister) << 1) | selectAttribute(attributeLowShiftRegister);
 
-	// Shift registers
-	auto shiftAndLoad = [](uint8_t& shiftRegister, uint8_t data)
-	{
-		shiftRegister = (shiftRegister >> 1) | (data << 7);
-	};
-	shiftAndLoad(attributeHighShiftRegister, (attributeLatch & 0x2) >> 1);
-	shiftAndLoad(attributeLowShiftRegister, attributeLatch & 0x1);
-	patternTableHighShiftRegister <<= 1;
-	patternTableLowShiftRegister <<= 1;
-
 	return { value, paletteEntry, 0, 0 };
 }
 
@@ -535,8 +522,6 @@ void NESPPU::tickBackgroundFetch()
 		} else if (curX % 8 == 3) {
 			const uint16_t addr = 0x23C0 | (vRegister & 0x0C00) | ((vRegister >> 4) & 0x38) | ((vRegister >> 2) & 0x07);
 			const uint8_t value = readByte(addr);
-			// const uint8_t paletteOffset = (pageX & 0x2) | ((pageY & 0x2) << 1);
-			// const uint8_t paletteEntry = (attributeTableValue >> paletteOffset) & 0x3;
 			const uint8_t paletteOffset = (RegisterCoarseX(vRegister).getValue() & 0x2) | ((RegisterCoarseY(vRegister).getValue() & 0x2) << 1);
 			attributeLatch = (value >> paletteOffset) & 0x3;
 		} else {
@@ -554,10 +539,19 @@ void NESPPU::tickBackgroundFetch()
 	if ((curX >= 2 && curX < 257) || curX >= 322) {
 		if (curX % 8 == 1) {
 			// Load shift registers
-			attributeHighShiftRegister = (attributeLatch % 4 == 2) ? 0xFF : 0x00;
-			attributeLowShiftRegister = (attributeLatch % 2 == 1) ? 0xFF : 0x00;
+			attributeLatchBit = attributeLatch & 3;
 			ShiftRegisterBottom(patternTableHighShiftRegister).set(patternTableHighLatch);
 			ShiftRegisterBottom(patternTableLowShiftRegister).set(patternTableLowLatch);
+		} else {
+			// Shift registers
+			auto shiftAndLoad = [](uint8_t& shiftRegister, uint8_t data)
+			{
+				shiftRegister = (shiftRegister >> 1) | (data << 7);
+			};
+			shiftAndLoad(attributeHighShiftRegister, (attributeLatchBit & 0x2) >> 1);
+			shiftAndLoad(attributeLowShiftRegister, attributeLatchBit & 0x1);
+			patternTableHighShiftRegister <<= 1;
+			patternTableLowShiftRegister <<= 1;
 		}
 	}
 }

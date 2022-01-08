@@ -54,6 +54,7 @@ private:
 	uint8_t attributeLowShiftRegister;
 	uint8_t nameTableLatch;
 	uint8_t attributeLatch;
+	uint8_t attributeLatchBit;
 	uint8_t patternTableHighLatch;
 	uint8_t patternTableLowLatch;
 
