@@ -542,17 +542,17 @@ void NESPPU::tickBackgroundFetch()
 			attributeLatchBit = attributeLatch & 3;
 			ShiftRegisterBottom(patternTableHighShiftRegister).set(patternTableHighLatch);
 			ShiftRegisterBottom(patternTableLowShiftRegister).set(patternTableLowLatch);
-		} else {
-			// Shift registers
-			auto shiftAndLoad = [](uint8_t& shiftRegister, uint8_t data)
-			{
-				shiftRegister = (shiftRegister >> 1) | (data << 7);
-			};
-			shiftAndLoad(attributeHighShiftRegister, (attributeLatchBit & 0x2) >> 1);
-			shiftAndLoad(attributeLowShiftRegister, attributeLatchBit & 0x1);
-			patternTableHighShiftRegister <<= 1;
-			patternTableLowShiftRegister <<= 1;
 		}
+
+		// Shift registers
+		auto shiftAndLoad = [](uint8_t& shiftRegister, uint8_t data)
+		{
+			shiftRegister = (shiftRegister >> 1) | (data << 7);
+		};
+		shiftAndLoad(attributeHighShiftRegister, (attributeLatchBit & 0x2) >> 1);
+		shiftAndLoad(attributeLowShiftRegister, attributeLatchBit & 0x1);
+		patternTableHighShiftRegister <<= 1;
+		patternTableLowShiftRegister <<= 1;
 	}
 }
 
