@@ -36,14 +36,26 @@ private:
 
 	AddressSpace8BitBy16Bit* addressSpace = nullptr;
 
+	// PPU flags
 	uint8_t ppuStatus = 0;
 	uint8_t ppuCtrl = 0;
 	uint8_t ppuMask = 0;
-	
-	uint16_t register_v = 0; // Current vram address, 15 bit, 
-	uint16_t register_t = 0; // Temporary vram address, same as above
-	uint8_t register_x = 0; // Fine x scroll, 3 bits
-	bool register_w = false; // Address latch, 1 bit, toggles between 0 and 1, used by $2005 and $2006, reset by $2002
+
+	// PPU registers
+	uint16_t vRegister = 0; // Current vram address, 15 bit, 
+	uint16_t tRegister = 0; // Temporary vram address, same as above
+	uint8_t xRegister = 0; // Fine x scroll, 3 bits
+	bool wRegister = false; // Address latch, 1 bit, toggles between 0 and 1, used by $2005 and $2006, reset by $2002
+
+	// Background fetching
+	uint16_t patternTableHighShiftRegister;
+	uint16_t patternTableLowShiftRegister;
+	uint8_t attributeHighShiftRegister;
+	uint8_t attributeLowShiftRegister;
+	uint8_t nameTableLatch;
+	uint8_t attributeLatch;
+	uint8_t patternTableHighLatch;
+	uint8_t patternTableLowLatch;
 
 	uint8_t ppuDataBuffer = 0;
 

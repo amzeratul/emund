@@ -46,6 +46,9 @@ using CtrlNametableSelect = BitView<uint8_t, 0, 2>;
 using ParFineScroll = BitView<uint8_t, 0, 3>;
 using ParCoarseScroll = BitView<uint8_t, 3, 5>;
 
+using ShiftRegisterTop = BitView<uint16_t, 8, 8>;
+using ShiftRegisterBottom = BitView<uint16_t, 0, 1>;
+
 
 NESPPU::NESPPU()
 {
@@ -80,23 +83,61 @@ bool NESPPU::tick()
 	}
 
 	if (isVisibleLine) {
-		if (curX % 8 == 0 && ((curX >= 8 && curX <= 256) || curX >= 328)) {
-			incrementHorizontalPos();
-			if (curX == 256) {
-				incrementVerticalPos();
+		// Background fetching
+		if ((curX >= 1 && curX < 257) || curX >= 321) {
+			if (curX % 8 == 0) {
+				incrementHorizontalPos();
+				if (curX == 256) {
+					incrementVerticalPos();
+				}
+			} else if (curX % 8 == 1) {
+				nameTableLatch = readByte(RegisterTileAddress(vRegister).getValue() | 0x2000);
+			} else if (curX % 8 == 3) {
+				const uint16_t addr = 0x23C0 | (vRegister & 0x0C00) | ((vRegister >> 4) & 0x38) | ((vRegister >> 2) & 0x07);
+				const uint8_t value = readByte(addr);
+				// const uint8_t paletteOffset = (pageX & 0x2) | ((pageY & 0x2) << 1);
+				// const uint8_t paletteEntry = (attributeTableValue >> paletteOffset) & 0x3;
+				attributeLatch = value >> ((RegisterCoarseX(vRegister).getValue() % 4) * 2);
+			} else {
+				const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
+				const uint16_t addr = patternTable | nameTableLatch * 16 | RegisterFineY(vRegister).getValue();
+				if (curX % 8 == 5) {
+					patternTableLowLatch = readByte(addr);
+				} else if (curX % 8 == 7) {
+					patternTableHighLatch = readByte(addr + 8);
+				}
 			}
-		} else if (curX == 257) {
+		}
+
+		// Shift registers
+		if ((curX >= 2 && curX < 257) || curX >= 322) {
+			if (curX % 8 == 1) {
+				// Load shift registers
+				attributeHighShiftRegister = (attributeLatch % 4 == 2) ? 0xFF : 0x00;
+				attributeLowShiftRegister = (attributeLatch % 2 == 1) ? 0xFF : 0x00;
+				ShiftRegisterTop(patternTableHighShiftRegister).set(patternTableHighLatch);
+				ShiftRegisterTop(patternTableLowShiftRegister).set(patternTableLowLatch);
+			} else {
+				// Shift registers
+				attributeHighShiftRegister >>= 1;
+				attributeLowShiftRegister >>= 1;
+				patternTableHighShiftRegister >>= 1;
+				patternTableLowShiftRegister >>= 1;
+			}
+		}
+
+		if (curX == 257) {
 			// Update horizontal scroll
-			RegisterCoarseX::of(register_v).set(RegisterCoarseX::of(register_t));
-			RegisterNametableSelectX::of(register_v).set(RegisterNametableSelectX::of(register_t));
+			RegisterCoarseX::of(vRegister).set(RegisterCoarseX::of(tRegister));
+			RegisterNametableSelectX::of(vRegister).set(RegisterNametableSelectX::of(tRegister));
 		}
 	}
 
 	if (isPreRenderLine && curX >= 280 && curX < 304) {
 		// Update vertical scroll
-		RegisterCoarseY::of(register_v).set(RegisterCoarseY::of(register_t));
-		RegisterFineY::of(register_v).set(RegisterFineY::of(register_t));
-		RegisterNametableSelectY::of(register_v).set(RegisterNametableSelectY::of(register_t));
+		RegisterCoarseY::of(vRegister).set(RegisterCoarseY::of(tRegister));
+		RegisterFineY::of(vRegister).set(RegisterFineY::of(tRegister));
+		RegisterNametableSelectY::of(vRegister).set(RegisterNametableSelectY::of(tRegister));
 	}
 
 	// Last scanline on odd fields is shorter
@@ -130,24 +171,24 @@ bool NESPPU::tick()
 
 void NESPPU::incrementHorizontalPos()
 {
-	auto coarseX = RegisterCoarseX(register_v);
+	auto coarseX = RegisterCoarseX(vRegister);
 	coarseX += 1;
 	if (coarseX.getValue() == 0) {
-		auto nametable = RegisterNametableSelectX(register_v);
+		auto nametable = RegisterNametableSelectX(vRegister);
 		nametable.set(uint16_t(1 - nametable.getValue()));
 	}
 }
 
 void NESPPU::incrementVerticalPos()
 {
-	auto fineY = RegisterFineY(register_v);
+	auto fineY = RegisterFineY(vRegister);
 	fineY += 1;
 	if (fineY.getValue() == 0) {
-		auto coarseY = RegisterCoarseY(register_v);
+		auto coarseY = RegisterCoarseY(vRegister);
 		coarseY += 1;
 		if (coarseY.getValue() == 30) {
 			coarseY.set(uint8_t(0));
-			auto nametable = RegisterNametableSelectY(register_v);
+			auto nametable = RegisterNametableSelectY(vRegister);
 			nametable.set(uint16_t(1 - nametable.getValue()));
 		}
 	}
@@ -198,7 +239,7 @@ uint8_t NESPPU::readRegister(uint16_t address)
 		{
 			const uint8_t value = ppuStatus;
 			ppuStatus &= ~PPUSTATUS_VBLANK;
-			register_w = false;
+			wRegister = false;
 			return value;
 		}
 	case 0x2004:
@@ -210,9 +251,13 @@ uint8_t NESPPU::readRegister(uint16_t address)
 	case 0x2007:
 		{
 			const uint8_t value = ppuDataBuffer;
-			RegisterAddress ppuAddr(register_v);
+			RegisterAddress ppuAddr(vRegister);
 			ppuDataBuffer = readByte(ppuAddr.getValue());
 			ppuAddr += static_cast<uint16_t>((ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1);
+			if (ppuAddr.getValue() >= 0x3f00) {
+				// Palettes are placed on data bus immediately, for some reason
+				return ppuDataBuffer;
+			}
 			return value;
 		}
 	default:
@@ -229,7 +274,7 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 	case 0x2000:
 		if (isReady) {
 			ppuCtrl = value;
-			RegisterNametableSelect(register_t).set(CtrlNametableSelect(value));
+			RegisterNametableSelect(tRegister).set(CtrlNametableSelect(value));
 		}
 		break;
 	case 0x2001:
@@ -247,30 +292,30 @@ void NESPPU::writeRegister(uint16_t address, uint8_t value)
 		break;
 	case 0x2005:
 		if (isReady) {
-			if (!register_w) {
-				RegisterCoarseX(register_t).set(ParCoarseScroll(value));
-				RegisterFineX(register_x).set(ParFineScroll(value));
+			if (!wRegister) {
+				RegisterCoarseX(tRegister).set(ParCoarseScroll(value));
+				RegisterFineX(xRegister).set(ParFineScroll(value));
 			} else {
-				RegisterCoarseY(register_t).set(ParCoarseScroll(value));
-				RegisterFineY(register_t).set(ParFineScroll(value));
+				RegisterCoarseY(tRegister).set(ParCoarseScroll(value));
+				RegisterFineY(tRegister).set(ParFineScroll(value));
 			}
-			register_w = !register_w;
+			wRegister = !wRegister;
 		}
 		break;
 	case 0x2006:
 		if (isReady) {
-			if (!register_w) {
-				RegisterAddressHigh(register_t).set(value);
+			if (!wRegister) {
+				RegisterAddressHigh(tRegister).set(value);
 			} else {
-				RegisterAddressLow(register_t).set(value);
-				register_v = register_t;
+				RegisterAddressLow(tRegister).set(value);
+				vRegister = tRegister;
 			}
-			register_w = !register_w;
+			wRegister = !wRegister;
 		}
 		break;
 	case 0x2007:
 		{
-			auto addr = RegisterAddress(register_v);
+			auto addr = RegisterAddress(vRegister);
 			writeByte(addr.getValue(), value);
 			addr += (ppuCtrl & PPUCTRL_VRAM_ADDRESS) ? 32 : 1;
 		}
@@ -325,35 +370,13 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 		return PixelOutput { 0, 0, 0, 0 };
 	}
 	
-	// Get current tile from nametable
-	// TODO: this should be pre-fetched
-	const uint8_t fineX = uint8_t((RegisterFineX(register_x).getValue() + x) % 8);
-	const uint8_t fineY = uint8_t(RegisterFineY(register_v).getValue());
-	const uint8_t coarseX = uint8_t(RegisterCoarseX(register_v).getValue());
-	const uint8_t coarseY = uint8_t(RegisterCoarseY(register_v).getValue());
-	const uint8_t tilePage = (coarseX / 32) % 2;
-	const uint8_t pageX = coarseX % 32;
-	const uint8_t pageY = coarseY % 30;
-
-	const uint16_t nameTableAddress = 0x2000 | (((RegisterNametableSelect(register_v).getValue() + tilePage) & 3) * 0x400);
-	const uint16_t tileAddress = nameTableAddress + pageX + (pageY << 5);
-	RegisterTileAddress(register_v).set(tileAddress);
-	const uint8_t curTile = addressSpace->readDirect(tileAddress);
-
-	// Read tile data
-	const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
-	const uint8_t plane0 = addressSpace->read(patternTable + (curTile * 16) + fineY);
-	const uint8_t plane1 = addressSpace->read(patternTable + (curTile * 16) + fineY + 8);
-	const uint8_t tileXBit = 1 << (7 - fineX);
-	const uint8_t value = ((plane0 & tileXBit) != 0 ? 1 : 0) + ((plane1 & tileXBit) != 0 ? 2 : 0);
-
-	// Read attribute
-	// TODO: this should also be pre-fetched
-	const uint16_t attributeTableAddress = nameTableAddress + 0x3C0;
-	const uint16_t attributeEntry = attributeTableAddress + (pageX / 4) + (pageY / 4) * 8;
-	const uint8_t attributeTableValue = addressSpace->readDirect(attributeEntry);
-	const uint8_t paletteOffset = (pageX & 0x2) | ((pageY & 0x2) << 1);
-	const uint8_t paletteEntry = (attributeTableValue >> paletteOffset) & 0x3;
+	auto select = [&](auto v) -> uint8_t
+	{
+		return static_cast<uint8_t>((v >> xRegister) & 1);
+	};
+	
+	const uint8_t value = (select(patternTableHighShiftRegister) << 1) | select(patternTableLowShiftRegister);
+	const uint8_t paletteEntry = (select(attributeHighShiftRegister) << 1) | select(attributeLowShiftRegister);
 
 	return { value, paletteEntry };
 }
