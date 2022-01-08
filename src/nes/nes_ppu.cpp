@@ -83,49 +83,6 @@ bool NESPPU::tick()
 	}
 
 	if (isVisibleLine) {
-		// Background fetching
-		if ((curX >= 1 && curX < 257) || curX >= 321) {
-			if (curX % 8 == 0) {
-				incrementHorizontalPos();
-				if (curX == 256) {
-					incrementVerticalPos();
-				}
-			} else if (curX % 8 == 1) {
-				nameTableLatch = readByte(RegisterTileAddress(vRegister).getValue() | 0x2000);
-			} else if (curX % 8 == 3) {
-				const uint16_t addr = 0x23C0 | (vRegister & 0x0C00) | ((vRegister >> 4) & 0x38) | ((vRegister >> 2) & 0x07);
-				const uint8_t value = readByte(addr);
-				// const uint8_t paletteOffset = (pageX & 0x2) | ((pageY & 0x2) << 1);
-				// const uint8_t paletteEntry = (attributeTableValue >> paletteOffset) & 0x3;
-				attributeLatch = value >> ((RegisterCoarseX(vRegister).getValue() % 4) * 2);
-			} else {
-				const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
-				const uint16_t addr = patternTable | nameTableLatch * 16 | RegisterFineY(vRegister).getValue();
-				if (curX % 8 == 5) {
-					patternTableLowLatch = readByte(addr);
-				} else if (curX % 8 == 7) {
-					patternTableHighLatch = readByte(addr + 8);
-				}
-			}
-		}
-
-		// Shift registers
-		if ((curX >= 2 && curX < 257) || curX >= 322) {
-			if (curX % 8 == 1) {
-				// Load shift registers
-				attributeHighShiftRegister = (attributeLatch % 4 == 2) ? 0xFF : 0x00;
-				attributeLowShiftRegister = (attributeLatch % 2 == 1) ? 0xFF : 0x00;
-				ShiftRegisterTop(patternTableHighShiftRegister).set(patternTableHighLatch);
-				ShiftRegisterTop(patternTableLowShiftRegister).set(patternTableLowLatch);
-			} else {
-				// Shift registers
-				attributeHighShiftRegister >>= 1;
-				attributeLowShiftRegister >>= 1;
-				patternTableHighShiftRegister >>= 1;
-				patternTableLowShiftRegister >>= 1;
-			}
-		}
-
 		if (curX == 257) {
 			// Update horizontal scroll
 			RegisterCoarseX::of(vRegister).set(RegisterCoarseX::of(tRegister));
@@ -347,7 +304,7 @@ void NESPPU::generatePixel(uint8_t x, uint8_t y)
 
 	PixelOutput result;
 	if (sprite.value != 0 && bg.value != 0) {
-		result = sprite.priority == 0 || true ? sprite : bg;
+		result = sprite.priority == 0 ? sprite : bg;
 		if (sprite.spriteN == 0) {
 			ppuStatus |= PPUSTATUS_SPRITE_ZERO_HIT;
 		}
@@ -369,16 +326,26 @@ NESPPU::PixelOutput NESPPU::generateBackground(uint8_t x, uint8_t y)
 	if (!(ppuMask & PPUMASK_SHOW_BACKGROUND) || (x < 8 && !(ppuMask & PPUMASK_SHOW_BACKGROUND_LEFT))) {
 		return PixelOutput { 0, 0, 0, 0 };
 	}
-	
+
+	// Fetch data from registers
 	auto select = [&](auto v) -> uint8_t
 	{
 		return static_cast<uint8_t>((v >> xRegister) & 1);
-	};
-	
+	};	
 	const uint8_t value = (select(patternTableHighShiftRegister) << 1) | select(patternTableLowShiftRegister);
 	const uint8_t paletteEntry = (select(attributeHighShiftRegister) << 1) | select(attributeLowShiftRegister);
 
-	return { value, paletteEntry };
+	// Shift registers
+	auto shiftAndLoad = [](uint8_t& shiftRegister, uint8_t data)
+	{
+		shiftRegister = (shiftRegister >> 1) | (data << 7);
+	};
+	shiftAndLoad(attributeHighShiftRegister, (attributeLatch & 0x2) >> 1);
+	shiftAndLoad(attributeLowShiftRegister, attributeLatch & 0x1);
+	patternTableHighShiftRegister >>= 1;
+	patternTableLowShiftRegister >>= 1;
+
+	return { value, paletteEntry, 0, 0 };
 }
 
 NESPPU::PixelOutput NESPPU::generateSprite(uint8_t x, uint8_t y)
@@ -549,7 +516,43 @@ void NESPPU::tickSpriteFetch()
 
 void NESPPU::tickBackgroundFetch()
 {
-	// TODO
+	// Background fetching
+	if ((curX >= 1 && curX < 257) || curX >= 321) {
+		if (curX % 8 == 0) {
+			incrementHorizontalPos();
+			if (curX == 256) {
+				incrementVerticalPos();
+			}
+		} else if (curX % 8 == 1) {
+			nameTableLatch = readByte(RegisterTileAddress(vRegister).getValue() | 0x2000);
+		} else if (curX % 8 == 3) {
+			const uint16_t addr = 0x23C0 | (vRegister & 0x0C00) | ((vRegister >> 4) & 0x38) | ((vRegister >> 2) & 0x07);
+			const uint8_t value = readByte(addr);
+			// const uint8_t paletteOffset = (pageX & 0x2) | ((pageY & 0x2) << 1);
+			// const uint8_t paletteEntry = (attributeTableValue >> paletteOffset) & 0x3;
+			const uint8_t paletteOffset = (RegisterCoarseX(vRegister).getValue() & 0x2) | ((RegisterCoarseY(vRegister).getValue() & 0x2) << 1);
+			attributeLatch = (value >> paletteOffset) & 0x3;
+		} else {
+			const uint16_t patternTable = (ppuCtrl & PPUCTRL_BACKGROUND_PATTERN_TABLE_ADDRESS) ? 0x1000 : 0x0000;
+			const uint16_t addr = patternTable | nameTableLatch * 16 | RegisterFineY(vRegister).getValue();
+			if (curX % 8 == 5) {
+				patternTableLowLatch = readByte(addr);
+			} else if (curX % 8 == 7) {
+				patternTableHighLatch = readByte(addr + 8);
+			}
+		}
+	}
+
+	// Shift registers
+	if ((curX >= 2 && curX < 257) || curX >= 322) {
+		if (curX % 8 == 1) {
+			// Load shift registers
+			attributeHighShiftRegister = (attributeLatch % 4 == 2) ? 0xFF : 0x00;
+			attributeLowShiftRegister = (attributeLatch % 2 == 1) ? 0xFF : 0x00;
+			ShiftRegisterTop(patternTableHighShiftRegister).set(patternTableHighLatch);
+			ShiftRegisterTop(patternTableLowShiftRegister).set(patternTableLowLatch);
+		}
+	}
 }
 
 void NESPPU::writeByte(uint16_t address, uint8_t value)
