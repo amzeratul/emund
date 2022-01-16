@@ -13,7 +13,7 @@ public:
 	
     bool tick();
 	
-    uint32_t getCycle() const;
+    uint64_t getCycle() const;
 	uint32_t getFrameNumber() const;
 	uint32_t getX() const;
 	uint32_t getY() const;
@@ -29,7 +29,7 @@ public:
 	gsl::span<uint8_t> getOAMData();
 
 private:
-	uint32_t cycle = 0;
+	uint64_t cycle = 0;
 	uint32_t curX = 0;
 	uint32_t curY = 0;
 	uint32_t frameN = 0;

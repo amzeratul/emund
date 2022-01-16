@@ -3,11 +3,11 @@
 #include <vector>
 #include <gsl/span>
 
-
 class NESRom;
 class NESMapper;
 class CPU6502;
 class NESPPU;
+class NESAPU;
 class AddressSpace8BitBy16Bit;
 
 struct NESInputJoystick {
@@ -45,6 +45,7 @@ private:
 	std::unique_ptr<NESMapper> mapper;
 	std::unique_ptr<CPU6502> cpu;
 	std::unique_ptr<NESPPU> ppu;
+	std::unique_ptr<NESAPU> apu;
 	std::unique_ptr<AddressSpace8BitBy16Bit> cpuAddressSpace;
 	std::unique_ptr<AddressSpace8BitBy16Bit> ppuAddressSpace;
 	std::vector<uint8_t> ram;

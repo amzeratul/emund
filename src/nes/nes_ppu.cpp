@@ -175,7 +175,7 @@ void NESPPU::setAddressSpace(AddressSpace8BitBy16Bit& addressSpace)
 	this->addressSpace = &addressSpace;
 }
 
-uint32_t NESPPU::getCycle() const
+uint64_t NESPPU::getCycle() const
 {
 	return cycle;
 }

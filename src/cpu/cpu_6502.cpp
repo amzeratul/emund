@@ -75,7 +75,7 @@ void CPU6502::printDebugInfo()
 	char bufferB[128];
 
 	size_t n = disassembler->disassemble(addressSpace->read(regPC), addressSpace->read(regPC + 1), addressSpace->read(regPC + 2), bufferA);
-	std::snprintf(bufferB, 128, "%04hX                                            A:%02hhX X:%02hhX Y:%02hhX P:%02hhX SP:%02hhX CYC: %i", regPC, regA, regX, regY, regP, regS, cycle);
+	std::snprintf(bufferB, 128, "%04hX                                            A:%02hhX X:%02hhX Y:%02hhX P:%02hhX SP:%02hhX CYC: %lli", regPC, regA, regX, regY, regP, regS, cycle);
 	memcpy(bufferB + 6, bufferA, std::min(strlen(bufferA), size_t(40)));
 	
 	Logger::logDev(String(bufferB));
@@ -658,7 +658,7 @@ uint8_t CPU6502::getErrorInstruction() const
 	return errorInstruction;
 }
 
-uint32_t CPU6502::getCycle() const
+uint64_t CPU6502::getCycle() const
 {
 	return cycle;
 }

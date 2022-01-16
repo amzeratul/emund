@@ -28,7 +28,7 @@ public:
 	bool hasError() const;
 	ErrorType getError() const;
 	uint8_t getErrorInstruction() const;
-	uint32_t getCycle() const;
+	uint64_t getCycle() const;
 
 	void copyOAM(uint8_t highAddr, gsl::span<uint8_t> oamData);
 
@@ -41,7 +41,7 @@ private:
 	uint16_t regPC = 0xC000;
 	uint8_t regS = 0xFD;
 	uint8_t regP = 0x34;
-	uint32_t cycle = 0;
+	uint64_t cycle = 0;
 
 	uint16_t startPC = 0;
 	bool pageCrossed = false;

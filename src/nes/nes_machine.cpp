@@ -7,6 +7,8 @@
 
 #include <halley.hpp>
 
+#include "nes_apu.h"
+
 using namespace Halley;
 
 NESInputJoystick::NESInputJoystick()
@@ -60,6 +62,8 @@ NESMachine::NESMachine()
 	ppu->setAddressSpace(*ppuAddressSpace);
 	ppu->setFrameBuffer(frameBuffer);
 
+	apu = std::make_unique<NESAPU>();
+
 	cpuAddressSpace->mapRegister(0x4000, 0x401F, this, [] (void* self, uint16_t address, uint8_t& value, bool write)
 	{
 		const auto machine = static_cast<NESMachine*>(self);
@@ -86,15 +90,14 @@ void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 
 void NESMachine::tickFrame(NESInputJoystick joy0, NESInputJoystick joy1)
 {
-	/*
-	const uint32_t masterClockCycles = 357366;
-	const uint32_t nCPUCycles = masterClockCycles / 12;
-	const uint32_t startCPU = cpu->getCycle();
-	const uint32_t endCPU = startCPU + nCPUCycles;
-	*/
-
 	while (running) {
-		// Step PPU first, have it catch up to CPU
+		// Step APU first, have it catch up to CPU
+		const auto targetAPUCycle = cpu->getCycle() / 2;
+		while (apu->getCycle() < targetAPUCycle) {
+			apu->tick();
+		}
+		
+		// Step PPU next, have it also catch up to CPU
 		const auto targetPPUCycle = cpu->getCycle() * 3;
 		while (ppu->getCycle() < targetPPUCycle) {
 			const bool vsync = ppu->tick();
@@ -129,6 +132,8 @@ void NESMachine::tickFrame(NESInputJoystick joy0, NESInputJoystick joy1)
 uint8_t NESMachine::readRegister(uint16_t address)
 {
 	switch (address) {
+	case 0x4015:
+		return apu->readRegister(address);
 	case 0x4016:
 		{
 			const uint8_t value = (port0 & 1);
@@ -149,98 +154,17 @@ uint8_t NESMachine::readRegister(uint16_t address)
 void NESMachine::writeRegister(uint16_t address, uint8_t value)
 {
 	switch (address) {
-	case 0x4000:
-		// SQ1_VOL
-	    // TODO
-	    break;
-	case 0x4001:
-		// SQ1_SWEEP
-	    // TODO
-	    break;
-	case 0x4002:
-		// SQ1_LO
-	    // TODO
-	    break;
-	case 0x4003:
-		// SQ1_HI
-	    // TODO
-	    break;
-	case 0x4004:
-		// SQ2_VOL
-	    // TODO
-	    break;
-	case 0x4005:
-		// SQ2_SWEEP
-	    // TODO
-	    break;
-	case 0x4006:
-		// SQ2_LO
-	    // TODO
-	    break;
-	case 0x4007:
-		// SQ2_HI
-	    // TODO
-	    break;
-	case 0x4008:
-		// TRI_LINEAR
-	    // TODO
-	    break;
-	case 0x4009:
-		// 	Unused
-	    // TODO
-	    break;
-	case 0x400A:
-		// TRI_LO
-	    // TODO
-	    break;
-	case 0x400B:
-		// TRI_HI
-	    // TODO
-	    break;
-	case 0x400C:
-		// NOISE_VOL
-	    // TODO
-	    break;
-	case 0x400D:
-		// 	Unused
-	    // TODO
-	    break;
-	case 0x400E:
-		// NOISE_LO
-	    // TODO
-	    break;
-	case 0x400F:
-		// NOISE_HI
-	    // TODO
-	    break;
-	case 0x4010:
-		// DMC_FREQ
-	    // TODO
-	    break;
-	case 0x4011:
-		// DMC_RAW
-	    // TODO
-	    break;
-	case 0x4012:
-		// DMC_START
-	    // TODO
-	    break;
-	case 0x4013:
-		// DMC_LEN
-	    // TODO
-	    break;
 	case 0x4014:
 		// OAMDMA
 		cpu->copyOAM(value, ppu->getOAMData());
 		break;
-	case 0x4015:
-		// SND_CHN
-	    // TODO
-	    break;
 	case 0x4016:
 		// JOY1
 	    inputLatch = value & 0x7;
 	    break;
+	default:
+		apu->writeRegister(address, value);
+		break;
 	}
 }
 
