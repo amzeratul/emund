@@ -2,6 +2,8 @@
 
 #include <halley.hpp>
 
+#include "halley/audio/resampler.h"
+
 struct NESInputJoystick;
 using namespace Halley;
 
@@ -26,9 +28,15 @@ private:
 	std::shared_ptr<InputVirtual> input;
 
 	std::shared_ptr<PerformanceStatsView> perfView;
+	std::shared_ptr<StreamingAudioClip> audioStream;
+	AudioHandle audioStreamHandle;
+	std::unique_ptr<AudioResampler> resampler;
 
 	void generateFrame(gsl::span<const uint32_t> frameBuffer);
+	void generateAudio(gsl::span<const float> audioOut);
+
 	void setupScreen();
+	void setupAudio();
 	void setupInput();
 	void fillInput(InputDevice& src, NESInputJoystick& dst);
 };

@@ -43,6 +43,8 @@ void NESInputJoystick::clear()
 NESMachine::NESMachine()
 {
 	frameBuffer.resize(256 * 240);
+
+	audioBuffer.resize(1660, 0);
 	
 	cpuAddressSpace = std::make_unique<AddressSpace8BitBy16Bit>();
 	ram.resize(2 * 1024, 0);
@@ -88,7 +90,7 @@ void NESMachine::loadROM(std::unique_ptr<NESRom> romToLoad)
 	running = true;
 }
 
-void NESMachine::tickFrame(NESInputJoystick joy0, NESInputJoystick joy1)
+void NESMachine::tickFrame(gsl::span<const NESInputJoystick> joysticks)
 {
 	while (running) {
 		// Step APU first, have it catch up to CPU
@@ -123,8 +125,8 @@ void NESMachine::tickFrame(NESInputJoystick joy0, NESInputJoystick joy1)
 
 		// Latch input
 		if (inputLatch & 1) {
-			port0 = joy0.toBits();
-			port1 = joy1.toBits();
+			port0 = joysticks[0].toBits();
+			port1 = joysticks[1].toBits();
 		}
 	}
 }
@@ -171,6 +173,11 @@ void NESMachine::writeRegister(uint16_t address, uint8_t value)
 gsl::span<const uint32_t> NESMachine::getFrameBuffer() const
 {
 	return frameBuffer;
+}
+
+gsl::span<const float> NESMachine::getAudioBuffer() const
+{
+	return audioBuffer;
 }
 
 void NESMachine::reportCPUError()

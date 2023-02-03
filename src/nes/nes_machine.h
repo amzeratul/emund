@@ -31,12 +31,13 @@ public:
 	~NESMachine();
 
 	void loadROM(std::unique_ptr<NESRom> rom);
-	void tickFrame(NESInputJoystick joy0, NESInputJoystick joy1);
+	void tickFrame(gsl::span<const NESInputJoystick> joysticks);
 
 	uint8_t readRegister(uint16_t address);
 	void writeRegister(uint16_t address, uint8_t value);
 
 	gsl::span<const uint32_t> getFrameBuffer() const;
+	gsl::span<const float> getAudioBuffer() const;
 
 private:
 	bool running = false;
@@ -53,6 +54,7 @@ private:
 	std::vector<uint8_t> paletteRam;
 
 	std::vector<uint32_t> frameBuffer;
+	std::vector<float> audioBuffer;
 
 	uint8_t inputLatch = 0;
 	uint8_t port0 = 0;

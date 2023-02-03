@@ -64,6 +64,7 @@ std::unique_ptr<Stage> HalleyGame::startGame()
 	getAPI().video->setWindow(WindowDefinition(WindowType::Window, Vector2i(768, 720), getName()));
 	getAPI().video->setVsync(vsync);
 	getAPI().audio->startPlayback();
+	getAPI().audio->setListener(AudioListenerData(Vector3f()));
 	return std::make_unique<GameStage>();
 }
 

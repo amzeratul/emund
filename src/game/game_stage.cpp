@@ -5,7 +5,10 @@
 
 GameStage::GameStage() = default;
 
-GameStage::~GameStage() = default;
+GameStage::~GameStage()
+{
+	audioStreamHandle->stop();
+}
 
 void GameStage::init()
 {
@@ -27,8 +30,9 @@ void GameStage::init()
 	nes->loadROM(std::move(rom));
 
 	setupScreen();
+	setupAudio();
 	setupInput();
-
+	
 	perfView = std::make_shared<PerformanceStatsView>(getResources(), getAPI());
 }
 
@@ -36,7 +40,7 @@ void GameStage::onVariableUpdate(Time t)
 {
 	input->update(t);
 
-	if (getInputAPI().getKeyboard()->isButtonPressed(Keys::F2)) {
+	if (getInputAPI().getKeyboard()->isButtonPressed(KeyCode::F2)) {
 		perfView->setActive(!perfView->isActive());
 	}
 	perfView->update();
@@ -44,12 +48,12 @@ void GameStage::onVariableUpdate(Time t)
 
 void GameStage::onFixedUpdate(Time t)
 {
-	NESInputJoystick joy0;
-	NESInputJoystick joy1;
-	fillInput(*input, joy0);
-	
-	nes->tickFrame(joy0, joy1);
+	std::array<NESInputJoystick, 2> joys;
+	fillInput(*input, joys[0]);
+
+	nes->tickFrame(joys);
 	generateFrame(nes->getFrameBuffer());
+	generateAudio(nes->getAudioBuffer());
 }
 
 void GameStage::onRender(RenderContext& rc) const
@@ -86,6 +90,18 @@ void GameStage::generateFrame(gsl::span<const uint32_t> frameBuffer)
 	texture->load(std::move(texDesc));
 }
 
+void GameStage::generateAudio(gsl::span<const float> audioOut)
+{
+	auto resampled = std::array<float, 1660>();
+	auto result = resampler->resample(audioOut, resampled, 0);
+	audioStream->addInterleavedSamples(gsl::span<const float>(resampled).subspan(0, result.nWritten));
+	//audioStream->addInterleavedSamples(gsl::span<const float>(audioOut).subspan(0, result.nRead));
+	
+	if (!audioStreamHandle) {
+		audioStreamHandle = getAudioAPI().play(audioStream, AudioPosition::makeUI(), 1, true);
+	}
+}
+
 void GameStage::setupScreen()
 {
 	const auto textureSize = Vector2i(256, 240);
@@ -103,6 +119,15 @@ void GameStage::setupScreen()
 		.setColour(Colour4f(1, 1, 1, 1))
 		.setPosition(Vector2f(0, 0))
 		.setSize(Vector2f(textureSize));
+}
+
+void GameStage::setupAudio()
+{
+	std::array<float, 1000> buffer;
+	buffer.fill(0);
+	audioStream = std::make_shared<StreamingAudioClip>(1);
+	audioStream->addInterleavedSamples(buffer);
+	resampler = std::make_unique<AudioResampler>(99432, 48000, 1, 1.0f);
 }
 
 void GameStage::setupInput()
